@@ -62,7 +62,10 @@ export default function DashboardPage() {
             <TotalsRow totals={summaryQuery.data.totals} />
 
             <div className="grid gap-6 lg:grid-cols-2">
-              <SectorBreakdown sectors={summaryQuery.data.sector_breakdown} />
+              <SectorBreakdown
+                sectors={summaryQuery.data.sector_breakdown}
+                holdings={holdingsQuery.data}
+              />
               <TopMovers
                 gainers={summaryQuery.data.top_gainers_by_pct}
                 losers={summaryQuery.data.top_losers_by_pct}

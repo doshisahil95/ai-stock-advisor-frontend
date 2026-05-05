@@ -80,9 +80,15 @@ export function dateTime(iso: string | null | undefined): string {
 }
 
 /** "5 May" — for chart labels */
-export function dateShort(iso: string | null | undefined): string {
+export function dateShort(
+    iso: string | null | undefined,
+    format: "short" | "with-year" = "short"
+): string {
     if (!iso) return "—";
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "—";
+    if (format === "with-year") {
+        return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" });
+    }
     return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
