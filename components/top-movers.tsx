@@ -39,6 +39,9 @@ interface MoverListProps {
     icon: typeof ArrowUp;
 }
 
+import Link from "next/link";
+// (add this to the imports at the top)
+
 function MoverList({ title, items, icon: Icon }: MoverListProps) {
     return (
         <div>
@@ -48,9 +51,10 @@ function MoverList({ title, items, icon: Icon }: MoverListProps) {
             </h3>
             <div className="space-y-2">
                 {items.map((m) => (
-                    <div
+                    <Link
                         key={m.isin}
-                        className="flex items-center justify-between rounded-md border bg-card px-3 py-2 transition-colors hover:bg-accent/50"
+                        href={`/holdings/${m.isin}`}
+                        className="flex items-center justify-between rounded-md border bg-card px-3 py-2 transition-colors hover:bg-accent/50 hover:border-accent-foreground/20"
                     >
                         <span className="font-mono text-sm font-medium">{m.symbol}</span>
                         <div className="flex items-center gap-3 font-mono text-sm">
@@ -61,7 +65,7 @@ function MoverList({ title, items, icon: Icon }: MoverListProps) {
                                 {pct(m.unrealized_pnl_pct)}
                             </span>
                         </div>
-                    </div>
+                    </Link>
                 ))}
             </div>
         </div>

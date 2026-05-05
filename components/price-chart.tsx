@@ -118,7 +118,7 @@ export function PriceChart({ isin, symbol }: PriceChartProps) {
                                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                                 <XAxis
                                     dataKey="date"
-                                    tickFormatter={(d) => dateShort(d)}
+                                    tickFormatter={(d) => dateShort(d, days >= 365 ? "with-year" : "short")}
                                     tick={{ fontSize: 11 }}
                                     tickLine={false}
                                     axisLine={false}
@@ -139,7 +139,7 @@ export function PriceChart({ isin, symbol }: PriceChartProps) {
                                         borderRadius: 6,
                                         fontSize: 12,
                                     }}
-                                    labelFormatter={(d) => dateShort(d as string)}
+                                    labelFormatter={(d) => dateShort(d as string, days >= 365 ? "with-year" : "short")}
                                     formatter={(value) => [inr(typeof value === "number" ? value : Number(value)), "Close"]}
                                 />
                                 <Area

@@ -43,7 +43,7 @@ const HEADERS: { key: SortKey; label: string; align: "left" | "right" }[] = [
     { key: "quantity", label: "Qty", align: "right" },
     { key: "avg_cost", label: "Avg Cost", align: "right" },
     { key: "current_price", label: "Price", align: "right" },
-    { key: "day_gain_pct", label: "Day", align: "right" },
+    { key: "day_gain_pct", label: "Day %", align: "right" },
     { key: "invested_amount", label: "Invested", align: "right" },
     { key: "current_value", label: "Current", align: "right" },
     { key: "unrealized_pnl", label: "P&L", align: "right" },

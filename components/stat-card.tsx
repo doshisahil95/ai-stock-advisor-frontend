@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 
 interface StatCardProps {
-    title: string;
+    title: React.ReactNode;
     value: string;
     subValue?: string;
     subValueClassName?: string;

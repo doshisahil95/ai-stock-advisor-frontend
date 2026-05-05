@@ -52,7 +52,7 @@ export interface Holding {
     alert_on?: string[];
 
     // Timestamps
-    first_buy_at?: string | null;
+    first_purchased_at?: string | null;
     last_traded_at?: string | null;
     realized_pnl?: string;
     created_at?: string;

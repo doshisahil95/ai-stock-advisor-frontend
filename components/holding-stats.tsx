@@ -19,7 +19,7 @@ export function HoldingStats({ holding }: HoldingStatsProps) {
                 title="Quantity Held"
                 value={holding.quantity}
                 icon={Layers}
-                subValue={`First buy: ${holding.first_buy_at ? new Date(holding.first_buy_at).toLocaleDateString("en-IN") : "—"}`}
+                subValue={`First buy: ${holding.first_purchased_at ? new Date(holding.first_purchased_at).toLocaleDateString("en-IN") : "—"}`}
                 subValueClassName="text-muted-foreground"
             />
 
