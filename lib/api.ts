@@ -1,23 +1,121 @@
 /**
  * FastAPI client. Single place for all backend calls.
- * Types come from lib/api-types.ts (auto-generated from FastAPI's OpenAPI spec).
+ *
+ * Note on types: FastAPI's portfolio endpoints return dynamically-shaped dicts
+ * (no Pydantic response_model), so the auto-generated OpenAPI types use `unknown`.
+ * We define explicit shapes here based on what _doc_to_response() and
+ * compute_summary() actually produce. If the backend shape changes, update here.
  */
-import type { paths } from "./api-types";
 
 // Base URL — env var on Mac dev, falls back to the EC2 tailnet IP for production.
 export const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://100.112.20.41:8000";
 
-// ── Type helpers extracted from auto-generated OpenAPI types ─────────────────
+// ── Response types (manually maintained — mirror backend) ────────────────────
 
-type GetResponse<P extends keyof paths> = paths[P] extends {
-    get: { responses: { 200: { content: { "application/json": infer T } } } };
+/**
+ * One holding row. Numeric fields come back as strings (Decimal precision)
+ * and we parse with parseFloat() in the formatters.
+ */
+export interface Holding {
+    // Identity
+    isin: string;
+    symbol: string;
+    exchange: string;
+    name?: string | null;
+    sector?: string | null;
+    industry?: string | null;
+
+    // Position
+    quantity: string;
+    avg_cost: string;
+    invested_amount: string;
+
+    // Live P&L (added by annotate_with_current_price)
+    current_price: string | null;
+    current_value: string | null;
+    unrealized_pnl: string | null;
+    unrealized_pnl_pct: number | null;
+    price_as_of: string | null;
+    price_stale: boolean;
+
+    // Day's gain (only on /portfolio/summary, not on /portfolio/holdings)
+    day_gain?: string | null;
+    day_gain_pct?: number | null;
+
+    // User overlay
+    thesis?: string;
+    user_notes?: string;
+    tags?: string[];
+    stop_loss?: string | null;
+    target_price?: string | null;
+    alert_on?: string[];
+
+    // Timestamps
+    first_buy_at?: string | null;
+    last_traded_at?: string | null;
+    realized_pnl?: string;
+    created_at?: string;
+    updated_at?: string;
 }
-    ? T
-    : never;
 
-export type PortfolioSummary = GetResponse<"/portfolio/summary">;
-export type Holding = GetResponse<"/portfolio/holdings">[number];
+export interface MoverBrief {
+    isin: string;
+    symbol: string;
+    current_value: string | null;
+    unrealized_pnl: string | null;
+    unrealized_pnl_pct: number | null;
+}
+
+export interface DayMoverBrief {
+    isin: string;
+    symbol: string;
+    current_price: string | null;
+    day_gain: string | null;
+    day_gain_pct: number | null;
+}
+
+export interface ConcentrationItem {
+    isin: string;
+    symbol: string;
+    current_value: string;
+    pct_of_portfolio: number;
+}
+
+export interface SectorBucket {
+    sector: string;
+    stock_count: number;
+    invested: string;
+    current_value: string;
+    unrealized_pnl: string;
+    unrealized_pnl_pct: number;
+    pct_of_portfolio: number;
+}
+
+export interface PortfolioTotals {
+    invested: string;
+    current_value: string;
+    unrealized_pnl: string;
+    unrealized_pnl_pct: number;
+    day_gain: string;
+    day_gain_pct: number;
+    realized_pnl_lifetime: string;
+    total_holdings: number;
+    fully_exited_lifetime: number;
+}
+
+export interface PortfolioSummary {
+    as_of: string;
+    totals: PortfolioTotals;
+    top_gainers_by_pct: MoverBrief[];
+    top_losers_by_pct: MoverBrief[];
+    top_gainers_by_value: MoverBrief[];
+    top_losers_by_value: MoverBrief[];
+    day_gainers: DayMoverBrief[];
+    day_losers: DayMoverBrief[];
+    concentration: ConcentrationItem[];
+    sector_breakdown: SectorBucket[];
+}
 
 // ── Generic fetcher with friendly error handling ─────────────────────────────
 
@@ -63,5 +161,6 @@ export const api = {
     getHoldings: (): Promise<Holding[]> => apiFetch("/portfolio/holdings"),
 
     /** Health check. */
-    getHealth: (): Promise<{ status: string; mongo: string }> => apiFetch("/health"),
+    getHealth: (): Promise<{ status: string; mongo: string }> =>
+        apiFetch("/health"),
 };
