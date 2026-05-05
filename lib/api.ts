@@ -151,16 +151,63 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     return res.json() as Promise<T>;
 }
 
+// ── Drill-down page types ────────────────────────────────────────────────────
+
+export interface PriceBar {
+    date: string;          // ISO datetime
+    open: string;
+    high: string;
+    low: string;
+    close: string;
+    volume: number;
+    adj_close?: string | null;
+    symbol: string;
+    exchange: string;
+}
+
+export interface Transaction {
+    _id: string;
+    isin: string;
+    symbol: string;
+    exchange: string;
+    type: "BUY" | "SELL" | "SPLIT" | "BONUS" | "DIVIDEND";
+    trade_date: string;
+    settlement_date?: string | null;
+    quantity: string;
+    price: string;
+    trade_value?: string;
+    total_fees: string;
+    source?: string;
+    source_ref?: string | null;
+    notes?: string;
+    corporate_action?: {
+        ratio_from?: number;
+        ratio_to?: number;
+        notes?: string;
+    } | null;
+    remaining_quantity?: string;
+    created_at?: string;
+    updated_at?: string;
+    deleted_at?: string | null;
+}
+
 // ── Endpoint wrappers ────────────────────────────────────────────────────────
 
 export const api = {
-    /** Full portfolio summary — totals, movers, sectors, concentration, day's gain. */
     getSummary: (): Promise<PortfolioSummary> => apiFetch("/portfolio/summary"),
-
-    /** All active holdings, annotated with live current price & P&L. */
     getHoldings: (): Promise<Holding[]> => apiFetch("/portfolio/holdings"),
-
-    /** Health check. */
     getHealth: (): Promise<{ status: string; mongo: string }> =>
         apiFetch("/health"),
+
+    /** OHLCV time series for one stock; oldest → newest. */
+    getHoldingHistory: (isin: string, days = 90): Promise<PriceBar[]> =>
+        apiFetch(`/portfolio/holdings/${isin}/history?days=${days}`),
+
+    /** All BUY/SELL/SPLIT/BONUS for one stock; oldest → newest. */
+    getHoldingTransactions: (isin: string): Promise<Transaction[]> =>
+        apiFetch(`/portfolio/holdings/${isin}/transactions`),
+
+    /** Single holding with live P&L. */
+    getHolding: (isin: string): Promise<Holding> =>
+        apiFetch(`/portfolio/holdings/${isin}`),
 };

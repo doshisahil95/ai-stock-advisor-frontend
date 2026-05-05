@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
@@ -63,6 +64,7 @@ function getValue(h: Holding, key: SortKey): number | string {
 export function HoldingsTable({ holdings }: HoldingsTableProps) {
     const [sortKey, setSortKey] = useState<SortKey>("current_value");
     const [sortDir, setSortDir] = useState<SortDir>("desc");
+    const router = useRouter();
 
     const sorted = useMemo(() => {
         const copy = [...holdings];
@@ -120,7 +122,11 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
                         </TableHeader>
                         <TableBody>
                             {sorted.map((h) => (
-                                <TableRow key={h.isin} className="hover:bg-accent/40">
+                                <TableRow
+                                    key={h.isin}
+                                    className="cursor-pointer hover:bg-accent/40"
+                                    onClick={() => router.push(`/holdings/${h.isin}`)}
+                                >
                                     <TableCell className="font-mono font-medium">
                                         {h.symbol}
                                     </TableCell>
