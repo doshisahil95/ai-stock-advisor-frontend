@@ -1,0 +1,399 @@
+"use client";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+    AlertCircle,
+    AlertTriangle,
+    ArrowLeft,
+    CheckCircle2,
+    HelpCircle,
+} from "lucide-react";
+import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { api, ApiError } from "@/lib/api";
+import { colorForChange, dateTime, inr, inrSigned } from "@/lib/format";
+
+const formSchema = z.object({
+    icici_invested: z.coerce.number().positive("Must be positive"),
+    icici_current_value: z.coerce.number().positive("Must be positive"),
+    icici_day_gain: z.coerce.number().optional(),
+    notes: z.string().max(500).optional(),
+    set_as_baseline: z.boolean().default(false),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+export default function ReconciliationPage() {
+    const queryClient = useQueryClient();
+
+    const latestQuery = useQuery({
+        queryKey: ["reconciliation", "latest", "manual"],
+        queryFn: () => api.getLatestReconciliation("manual"),
+    });
+
+    const historyQuery = useQuery({
+        queryKey: ["reconciliation", "history"],
+        queryFn: () => api.getReconciliationHistory(30),
+    });
+
+    const submitMutation = useMutation({
+        mutationFn: (values: FormValues) =>
+            api.postReconciliationSnapshot({
+                icici_invested: values.icici_invested,
+                icici_current_value: values.icici_current_value,
+                icici_day_gain: values.icici_day_gain,
+                notes: values.notes || undefined,
+                set_as_baseline: values.set_as_baseline,
+            }),
+        onSuccess: (snap) => {
+            if (snap.has_drift) {
+                toast.warning("Snapshot recorded — drift detected", {
+                    description: "Alerts have been sent.",
+                });
+            } else {
+                toast.success("Snapshot recorded — no drift");
+            }
+            queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
+            form.reset();
+        },
+        onError: (err: Error) => {
+            const message = err instanceof ApiError ? err.detail : err.message;
+            toast.error("Failed to record snapshot", { description: message });
+        },
+    });
+
+    const form = useForm<FormValues>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            set_as_baseline: false,
+        },
+    });
+
+    return (
+        <main className="min-h-screen bg-background">
+            <div className="mx-auto max-w-5xl px-4 py-6 md:px-6 lg:px-8">
+                {/* Header */}
+                <header className="mb-6 space-y-2">
+                    <Link href="/" className="inline-flex">
+                        <Button variant="ghost" size="sm" className="-ml-3 h-8 gap-2 text-muted-foreground hover:text-foreground">
+                            <ArrowLeft className="h-3.5 w-3.5" />
+                            Back to portfolio
+                        </Button>
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">Reconciliation</h1>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Compare your portfolio with the broker. Detect drift before tax season.
+                        </p>
+                    </div>
+                </header>
+
+                {/* Status card */}
+                <StatusCard snapshot={latestQuery.data} loading={latestQuery.isLoading} />
+
+                {/* New snapshot form */}
+                <Card className="mt-6">
+                    <CardHeader>
+                        <CardTitle>Record a new snapshot</CardTitle>
+                        <CardDescription>
+                            Open ICICI&apos;s portfolio screen and copy the three values into the form below.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form
+                            onSubmit={form.handleSubmit((v) => submitMutation.mutate(v))}
+                            className="space-y-4"
+                        >
+                            <div className="grid gap-4 md:grid-cols-3">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="icici_invested">ICICI Invested (₹)</Label>
+                                    <Input
+                                        id="icici_invested"
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="1172328.72"
+                                        {...form.register("icici_invested")}
+                                    />
+                                    {form.formState.errors.icici_invested && (
+                                        <p className="text-xs text-red-600">
+                                            {form.formState.errors.icici_invested.message}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="icici_current_value">ICICI Current Value (₹)</Label>
+                                    <Input
+                                        id="icici_current_value"
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="1127323.57"
+                                        {...form.register("icici_current_value")}
+                                    />
+                                    {form.formState.errors.icici_current_value && (
+                                        <p className="text-xs text-red-600">
+                                            {form.formState.errors.icici_current_value.message}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="icici_day_gain">ICICI Day Gain (₹, optional)</Label>
+                                    <Input
+                                        id="icici_day_gain"
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="-13059.04"
+                                        {...form.register("icici_day_gain")}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label htmlFor="notes">Notes (optional)</Label>
+                                <Textarea
+                                    id="notes"
+                                    placeholder="e.g. After verifying TATASTEEL split applied"
+                                    rows={2}
+                                    {...form.register("notes")}
+                                />
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <input
+                                    id="set_as_baseline"
+                                    type="checkbox"
+                                    className="h-4 w-4 rounded border-input"
+                                    {...form.register("set_as_baseline")}
+                                />
+                                <Label
+                                    htmlFor="set_as_baseline"
+                                    className="cursor-pointer text-sm font-normal"
+                                >
+                                    Save current delta as the new baseline (use after explaining a known mismatch)
+                                </Label>
+                            </div>
+
+                            <Button
+                                type="submit"
+                                disabled={submitMutation.isPending}
+                                className="w-full md:w-auto"
+                            >
+                                {submitMutation.isPending ? "Recording…" : "Record snapshot"}
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
+
+                {/* History */}
+                <Card className="mt-6">
+                    <CardHeader>
+                        <CardTitle>History</CardTitle>
+                        <CardDescription>
+                            Last 30 snapshots, newest first. Auto = daily cron, Manual = entered by you.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {historyQuery.isLoading && (
+                            <div className="space-y-2">
+                                {[0, 1, 2].map((i) => (
+                                    <Skeleton key={i} className="h-10 w-full" />
+                                ))}
+                            </div>
+                        )}
+                        {historyQuery.data && historyQuery.data.length === 0 && (
+                            <p className="text-sm text-muted-foreground">No snapshots yet.</p>
+                        )}
+                        {historyQuery.data && historyQuery.data.length > 0 && (
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="text-xs uppercase tracking-wider">When</TableHead>
+                                            <TableHead className="text-xs uppercase tracking-wider">Type</TableHead>
+                                            <TableHead className="text-right text-xs uppercase tracking-wider">Our Inv.</TableHead>
+                                            <TableHead className="text-right text-xs uppercase tracking-wider">ICICI Inv.</TableHead>
+                                            <TableHead className="text-right text-xs uppercase tracking-wider">Δ Invested</TableHead>
+                                            <TableHead className="text-right text-xs uppercase tracking-wider">Δ Current</TableHead>
+                                            <TableHead className="text-xs uppercase tracking-wider">Drift?</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {historyQuery.data.map((s) => (
+                                            <TableRow key={s._id} className="hover:bg-accent/40">
+                                                <TableCell className="font-mono text-xs">
+                                                    {dateTime(s.taken_at)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className="text-xs">
+                                                        {s.type}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right font-mono text-xs">
+                                                    {inr(s.our_invested)}
+                                                </TableCell>
+                                                <TableCell className="text-right font-mono text-xs">
+                                                    {s.icici_invested ? inr(s.icici_invested) : "—"}
+                                                </TableCell>
+                                                <TableCell
+                                                    className={`text-right font-mono text-xs ${colorForChange(s.delta_invested)}`}
+                                                >
+                                                    {s.delta_invested ? inrSigned(s.delta_invested) : "—"}
+                                                </TableCell>
+                                                <TableCell
+                                                    className={`text-right font-mono text-xs ${colorForChange(s.delta_current_value)}`}
+                                                >
+                                                    {s.delta_current_value ? inrSigned(s.delta_current_value) : "—"}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {s.has_drift ? (
+                                                        <Badge variant="destructive" className="gap-1 text-xs">
+                                                            <AlertTriangle className="h-3 w-3" />
+                                                            drift
+                                                        </Badge>
+                                                    ) : (
+                                                        s.type === "manual" && (
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="gap-1 border-emerald-300 text-xs text-emerald-700 dark:border-emerald-900 dark:text-emerald-400"
+                                                            >
+                                                                <CheckCircle2 className="h-3 w-3" />
+                                                                ok
+                                                            </Badge>
+                                                        )
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+        </main>
+    );
+}
+
+interface StatusCardProps {
+    snapshot: Awaited<ReturnType<typeof api.getLatestReconciliation>>;
+    loading: boolean;
+}
+
+function StatusCard({ snapshot, loading }: StatusCardProps) {
+    if (loading) return <Skeleton className="h-32" />;
+
+    if (!snapshot) {
+        return (
+            <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-900 dark:bg-amber-950/20">
+                <CardContent className="flex items-center gap-3 py-4">
+                    <HelpCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                    <div>
+                        <p className="font-medium text-amber-900 dark:text-amber-200">
+                            No baseline recorded yet
+                        </p>
+                        <p className="text-sm text-amber-700 dark:text-amber-300">
+                            Record your first snapshot below to establish the expected delta.
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    const Icon = snapshot.has_drift ? AlertCircle : CheckCircle2;
+    const colorClass = snapshot.has_drift
+        ? "border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/30"
+        : "border-emerald-300 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30";
+    const iconColor = snapshot.has_drift
+        ? "text-red-600 dark:text-red-400"
+        : "text-emerald-600 dark:text-emerald-400";
+
+    return (
+        <Card className={colorClass}>
+            <CardContent className="py-4">
+                <div className="flex items-start gap-3">
+                    <Icon className={`mt-0.5 h-5 w-5 ${iconColor}`} />
+                    <div className="flex-1 space-y-3">
+                        <div>
+                            <p className="font-medium">
+                                {snapshot.has_drift
+                                    ? "Drift detected on latest snapshot"
+                                    : "Latest snapshot matches expected baseline"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                Recorded {dateTime(snapshot.taken_at)}
+                            </p>
+                        </div>
+                        <div className="grid gap-3 text-sm sm:grid-cols-2">
+                            <DeltaRow
+                                label="Δ Invested"
+                                value={snapshot.delta_invested}
+                                drift={snapshot.drift_invested}
+                            />
+                            <DeltaRow
+                                label="Δ Current Value"
+                                value={snapshot.delta_current_value}
+                                drift={snapshot.drift_current_value}
+                            />
+                        </div>
+                        {snapshot.notes && (
+                            <p className="text-xs italic text-muted-foreground">
+                                &ldquo;{snapshot.notes}&rdquo;
+                            </p>
+                        )}
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+function DeltaRow({
+    label,
+    value,
+    drift,
+}: {
+    label: string;
+    value: string | null | undefined;
+    drift: string | null | undefined;
+}) {
+    return (
+        <div className="flex items-center justify-between rounded-md border bg-card px-3 py-2">
+            <span className="text-xs text-muted-foreground">{label}</span>
+            <div className="flex items-center gap-3">
+                <span className={`font-mono text-sm ${colorForChange(value)}`}>
+                    {value ? inrSigned(value) : "—"}
+                </span>
+                {drift && parseFloat(drift) > 1000 && (
+                    <Badge variant="destructive" className="text-xs">
+                        drift {inr(drift)}
+                    </Badge>
+                )}
+            </div>
+        </div>
+    );
+}

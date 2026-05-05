@@ -191,6 +191,47 @@ export interface Transaction {
     deleted_at?: string | null;
 }
 
+// ── Reconciliation types ─────────────────────────────────────────────────────
+
+export interface ReconciliationSnapshot {
+    _id?: string;
+    taken_at: string;
+    type: "manual" | "auto";
+
+    // Our system numbers (always present)
+    our_invested: string;
+    our_current_value: string;
+    our_day_gain: string | null;
+    our_unrealized_pnl: string | null;
+
+    // ICICI numbers (manual only)
+    icici_invested?: string | null;
+    icici_current_value?: string | null;
+    icici_day_gain?: string | null;
+
+    // Computed deltas (manual only)
+    delta_invested?: string | null;
+    delta_current_value?: string | null;
+    delta_day_gain?: string | null;
+
+    // Drift (manual only)
+    drift_invested?: string | null;
+    drift_current_value?: string | null;
+    drift_day_gain?: string | null;
+
+    has_drift?: boolean;
+    alerts_sent?: string[];
+    notes?: string | null;
+}
+
+export interface ManualSnapshotPayload {
+    icici_invested: number;
+    icici_current_value: number;
+    icici_day_gain?: number;
+    notes?: string;
+    set_as_baseline?: boolean;
+}
+
 // ── Endpoint wrappers ────────────────────────────────────────────────────────
 
 export const api = {
@@ -198,16 +239,29 @@ export const api = {
     getHoldings: (): Promise<Holding[]> => apiFetch("/portfolio/holdings"),
     getHealth: (): Promise<{ status: string; mongo: string }> =>
         apiFetch("/health"),
-
-    /** OHLCV time series for one stock; oldest → newest. */
     getHoldingHistory: (isin: string, days = 90): Promise<PriceBar[]> =>
         apiFetch(`/portfolio/holdings/${isin}/history?days=${days}`),
-
-    /** All BUY/SELL/SPLIT/BONUS for one stock; oldest → newest. */
     getHoldingTransactions: (isin: string): Promise<Transaction[]> =>
         apiFetch(`/portfolio/holdings/${isin}/transactions`),
-
-    /** Single holding with live P&L. */
     getHolding: (isin: string): Promise<Holding> =>
         apiFetch(`/portfolio/holdings/${isin}`),
+
+    /** Most recent reconciliation snapshot (any type, or filter by 'manual'/'auto'). */
+    getLatestReconciliation: (
+        type?: "manual" | "auto"
+    ): Promise<ReconciliationSnapshot | null> =>
+        apiFetch(`/reconciliation/latest${type ? `?snapshot_type=${type}` : ""}`),
+
+    /** All reconciliation snapshots, newest first. */
+    getReconciliationHistory: (limit = 30): Promise<ReconciliationSnapshot[]> =>
+        apiFetch(`/reconciliation/history?limit=${limit}`),
+
+    /** Submit a manual snapshot with ICICI numbers. */
+    postReconciliationSnapshot: (
+        payload: ManualSnapshotPayload
+    ): Promise<ReconciliationSnapshot> =>
+        apiFetch("/reconciliation/snapshot", {
+            method: "POST",
+            body: JSON.stringify(payload),
+        }),
 };

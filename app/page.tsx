@@ -10,6 +10,7 @@ import { TopMovers } from "@/components/top-movers";
 import { TotalsRow } from "@/components/totals-row";
 import { api } from "@/lib/api";
 import { dateTime } from "@/lib/format";
+import { ReconciliationBadge } from "@/components/reconciliation-badge";
 
 export default function DashboardPage() {
   const summaryQuery = useQuery({
@@ -40,7 +41,10 @@ export default function DashboardPage() {
                 : "Loading…"}
             </p>
           </div>
-          <RefreshButton />
+          <div className="flex items-center gap-2">
+            <ReconciliationBadge />
+            <RefreshButton />
+          </div>
         </header>
 
         {/* Error state */}
