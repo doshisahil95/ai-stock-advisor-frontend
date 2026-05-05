@@ -86,7 +86,7 @@ export default function ReconciliationPage() {
         },
     });
 
-    const form = useForm<FormValues>({
+    const form = useForm({
         resolver: zodResolver(formSchema),
         defaultValues: {
             set_as_baseline: false,
@@ -299,7 +299,7 @@ export default function ReconciliationPage() {
 }
 
 interface StatusCardProps {
-    snapshot: Awaited<ReturnType<typeof api.getLatestReconciliation>>;
+    snapshot: Awaited<ReturnType<typeof api.getLatestReconciliation>> | undefined;
     loading: boolean;
 }
 
