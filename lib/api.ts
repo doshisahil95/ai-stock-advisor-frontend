@@ -253,6 +253,15 @@ export interface ManualSnapshotPayload {
     set_as_baseline?: boolean;
 }
 
+export interface UpdateHoldingPayload {
+    thesis?: string | null;
+    user_notes?: string | null;
+    tags?: string[] | null;
+    stop_loss?: string | null;
+    target_price?: string | null;
+    alert_on?: string[] | null;
+}
+
 // ── Endpoint wrappers ────────────────────────────────────────────────────────
 
 export const api = {
@@ -289,4 +298,11 @@ export const api = {
     /** All active cost-basis adjustments (CA-facing audit trail). */
     getCostBasisAdjustments: (): Promise<CostBasisAdjustment[]> =>
         apiFetch("/cost-basis/adjustments"),
+
+    /** Update user-overlay fields (thesis, notes, stop_loss, target_price, tags). */
+    updateHolding: (isin: string, payload: UpdateHoldingPayload): Promise<Holding> =>
+        apiFetch(`/portfolio/holdings/${isin}`, {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+        }),
 };

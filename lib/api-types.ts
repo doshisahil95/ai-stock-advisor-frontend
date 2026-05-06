@@ -52,21 +52,28 @@ export interface paths {
         patch: operations["patch_holding_portfolio_holdings__isin__patch"];
         trace?: never;
     };
-    "/portfolio/holdings/{isin}/sell": {
+    "/portfolio/holdings/{isin}/history": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
         /**
-         * Record a SELL (FIFO depletion)
-         * @description Record a SELL. FIFO depletion happens during recompute. If quantity goes to 0,
-         *     the holding is soft-deleted and 204 is returned.
+         * Get price history (OHLCV) for a holding
+         * @description Return the last N trading days of OHLCV for this ISIN.
+         *
+         *     Args:
+         *         isin: instrument ISIN
+         *         days: number of trading days to return (default 90, max 2000)
+         *
+         *     Returns:
+         *         List of {date, open, high, low, close, volume} sorted oldest → newest.
+         *         Empty list if no price data available.
          */
-        post: operations["sell_portfolio_holdings__isin__sell_post"];
+        get: operations["get_holding_history_portfolio_holdings__isin__history_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -87,6 +94,27 @@ export interface paths {
         get: operations["list_transactions_portfolio_holdings__isin__transactions_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/portfolio/holdings/{isin}/sell": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a SELL (FIFO depletion)
+         * @description Record a SELL. FIFO depletion happens during recompute. If quantity goes to 0,
+         *     the holding is soft-deleted and 204 is returned.
+         */
+        post: operations["sell_portfolio_holdings__isin__sell_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -194,6 +222,94 @@ export interface paths {
          *     All amounts in INR. Decimal values returned as strings to preserve precision.
          */
         get: operations["portfolio_summary_portfolio_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reconciliation/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the most recent snapshot */
+        get: operations["get_latest_reconciliation_latest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reconciliation/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get snapshot history (newest first) */
+        get: operations["get_history_reconciliation_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reconciliation/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record a manual snapshot with ICICI numbers */
+        post: operations["post_snapshot_reconciliation_snapshot_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reconciliation/auto-snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger an automatic snapshot (cron use)
+         * @description Endpoint for the daily cron to call. Captures our-side numbers only.
+         */
+        post: operations["post_auto_snapshot_reconciliation_auto_snapshot_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cost-basis/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all active cost-basis adjustments (audit trail) */
+        get: operations["list_adjustments_cost_basis_adjustments_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -319,6 +435,22 @@ export interface components {
             target_price?: number | string | null;
             /** Alert On */
             alert_on?: string[] | null;
+        };
+        /** ManualSnapshotPayload */
+        ManualSnapshotPayload: {
+            /** Icici Invested */
+            icici_invested: number;
+            /** Icici Current Value */
+            icici_current_value: number;
+            /** Icici Day Gain */
+            icici_day_gain?: number | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Set As Baseline
+             * @default false
+             */
+            set_as_baseline: boolean;
         };
         /** SellRequest */
         SellRequest: {
@@ -491,20 +623,18 @@ export interface operations {
             };
         };
     };
-    sell_portfolio_holdings__isin__sell_post: {
+    get_holding_history_portfolio_holdings__isin__history_get: {
         parameters: {
-            query?: never;
+            query?: {
+                days?: number;
+            };
             header?: never;
             path: {
                 isin: string;
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SellRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -514,7 +644,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         [key: string]: unknown;
-                    };
+                    }[];
                 };
             };
             /** @description Validation Error */
@@ -548,6 +678,43 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sell_portfolio_holdings__isin__sell_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                isin: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SellRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -750,6 +917,151 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    get_latest_reconciliation_latest_get: {
+        parameters: {
+            query?: {
+                snapshot_type?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    } | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_history_reconciliation_history_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_snapshot_reconciliation_snapshot_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualSnapshotPayload"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_auto_snapshot_reconciliation_auto_snapshot_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    list_adjustments_cost_basis_adjustments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
                 };
             };
         };
