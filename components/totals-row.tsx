@@ -44,7 +44,24 @@ export function TotalsRow({ totals }: TotalsRowProps) {
             />
 
             <StatCard
-                title="Current Value"
+                title={
+                    <span className="inline-flex items-center gap-1.5">
+                        Current Value
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Info className="h-3 w-3 cursor-help text-muted-foreground/60 hover:text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                                <p className="text-xs leading-relaxed">
+                                    Refreshes every 15 minutes during market hours (Mon–Fri 09:15–15:45 IST), and
+                                    daily after market close via yfinance EOD bars. ICICI&apos;s portfolio screen
+                                    shows truly live prices, so a small intra-15-min delta during market hours is
+                                    expected.
+                                </p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </span>
+                }
                 value={inr(totals.current_value)}
                 icon={IndianRupee}
                 subValue={`${inrSigned(totals.unrealized_pnl)} (${pct(totals.unrealized_pnl_pct)})`}
@@ -52,7 +69,23 @@ export function TotalsRow({ totals }: TotalsRowProps) {
             />
 
             <StatCard
-                title="Day's Gain"
+                title={
+                    <span className="inline-flex items-center gap-1.5">
+                        Day&apos;s Gain
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Info className="h-3 w-3 cursor-help text-muted-foreground/60 hover:text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                                <p className="text-xs leading-relaxed">
+                                    Today&apos;s price minus yesterday&apos;s close. During market hours, today&apos;s
+                                    price refreshes every 15 minutes via yfinance. ICICI shows truly live tick
+                                    data, so small differences during market hours are expected.
+                                </p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </span>
+                }
                 value={inrSigned(totals.day_gain)}
                 icon={ArrowDownUp}
                 subValue={pct(totals.day_gain_pct)}
