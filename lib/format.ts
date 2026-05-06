@@ -76,6 +76,7 @@ export function dateTime(iso: string | null | undefined): string {
         hour: "numeric",
         minute: "2-digit",
         hour12: true,
+        timeZone: "Asia/Kolkata",
     });
 }
 
@@ -88,7 +89,16 @@ export function dateShort(
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "—";
     if (format === "with-year") {
-        return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" });
+        return d.toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "2-digit",
+            timeZone: "Asia/Kolkata",
+        });
     }
-    return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+    return d.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        timeZone: "Asia/Kolkata",
+    });
 }

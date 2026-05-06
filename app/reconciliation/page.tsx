@@ -111,6 +111,37 @@ export default function ReconciliationPage() {
                         </p>
                     </div>
                 </header>
+                <Card className="mb-6 border-blue-200 bg-blue-50/40 dark:border-blue-900 dark:bg-blue-950/20">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Why reconciliation?</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3 pb-4 text-sm text-muted-foreground">
+                        <p>
+                            Our portfolio is computed from your ICICI Order Book trades plus any manual
+                            corporate actions (splits, bonuses, demergers) we&apos;ve recorded. ICICI&apos;s
+                            portfolio screen does the same — but the two views can diverge in legitimate
+                            ways (e.g. different cost-basis treatment after a demerger) or in problematic
+                            ways (we missed a corporate action they didn&apos;t).
+                        </p>
+                        <p>
+                            <strong className="text-foreground">How to use this page:</strong> open
+                            ICICI&apos;s portfolio screen periodically (e.g. weekly), enter the three numbers
+                            shown below, and click <em>Record snapshot</em>. The system stores it and
+                            compares with previous snapshots. If drift exceeds the alert threshold
+                            (₹1,000 on Invested, ₹15,000 on Current Value), you&apos;ll get a push
+                            notification and email — usually meaning a corporate action is unaccounted for
+                            and worth investigating before tax season.
+                        </p>
+                        <p>
+                            <strong className="text-foreground">Baseline:</strong> some delta is intentional
+                            (e.g. our Invested is ₹24,244 lower because we use the post-demerger Section
+                            49(2C) cost basis split for TMPV/TMCV, while ICICI shows the pre-demerger
+                            number). When you confirm such a difference is expected, tick &ldquo;Save current
+                            delta as the new baseline&rdquo; — future snapshots only alert on drift{" "}
+                            <em>beyond</em> this baseline.
+                        </p>
+                    </CardContent>
+                </Card>
 
                 {/* Status card */}
                 <StatusCard snapshot={latestQuery.data} loading={latestQuery.isLoading} />
