@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Auto-generated from FastAPI OpenAPI spec — re-generated per environment
+lib/api-types.ts
