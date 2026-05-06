@@ -5,7 +5,7 @@ import type { LucideIcon } from "lucide-react";
 interface StatCardProps {
     title: React.ReactNode;
     value: string;
-    subValue?: string;
+    subValue?: React.ReactNode;
     subValueClassName?: string;
     icon?: LucideIcon;
     className?: string;

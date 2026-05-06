@@ -102,6 +102,27 @@ export interface PortfolioTotals {
     realized_pnl_lifetime: string;
     total_holdings: number;
     fully_exited_lifetime: number;
+    broker_invested?: string | null;
+    broker_unrealized_pnl?: string | null;
+    broker_unrealized_pnl_pct?: number | null;
+}
+
+export interface CostBasisAdjustment {
+    _id: string;
+    name: string;
+    isin?: string | null;
+    related_isins: string[];
+    amount: string;
+    it_act_section: string;
+    effective_date: string;
+    calculation: string;
+    broker_treatment: string;
+    our_treatment: string;
+    rationale: string;
+    source_documents: string[];
+    active: boolean;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export interface PortfolioSummary {
@@ -264,4 +285,8 @@ export const api = {
             method: "POST",
             body: JSON.stringify(payload),
         }),
+
+    /** All active cost-basis adjustments (CA-facing audit trail). */
+    getCostBasisAdjustments: (): Promise<CostBasisAdjustment[]> =>
+        apiFetch("/cost-basis/adjustments"),
 };
