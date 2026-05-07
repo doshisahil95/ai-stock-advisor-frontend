@@ -105,7 +105,7 @@ export function SellSheet({ holding, open, onOpenChange }: SellSheetProps) {
                 trade_date: new Date(values.trade_date).toISOString(),
             }),
         onSuccess: (response) => {
-            if (response.holding === null) {
+            if (response.holding == null) {
                 // Fully exited
                 toast.success(`Position closed — realized ${inrSigned(response.realized_total ?? "0")}`, {
                     description: "Returning to dashboard.",
@@ -117,8 +117,9 @@ export function SellSheet({ holding, open, onOpenChange }: SellSheetProps) {
                 // Small delay so toast is visible during navigation
                 setTimeout(() => router.push("/"), 600);
             } else {
+                const remainingQty = response.holding?.quantity ?? "(unknown)";
                 toast.success(`Sold ${qty} ${holding.symbol} at ${inr(price)}`, {
-                    description: `${response.holding.quantity} shares remaining`,
+                    description: `${remainingQty} shares remaining`,
                 });
                 queryClient.invalidateQueries({ queryKey: ["holding", holding.isin] });
                 queryClient.invalidateQueries({ queryKey: ["transactions", holding.isin] });
