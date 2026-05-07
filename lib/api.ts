@@ -262,6 +262,49 @@ export interface UpdateHoldingPayload {
     alert_on?: string[] | null;
 }
 
+// ── Buy/Sell payload types ───────────────────────────────────────────────────
+
+export interface BuyPayload {
+    symbol: string;
+    exchange?: string;
+    quantity: string;
+    price: string;
+    fees?: string;
+    trade_date: string; // ISO datetime
+}
+
+export interface SellPayload {
+    quantity: string;
+    price: string;
+    fees?: string;
+    trade_date: string;
+    source_ref?: string;
+}
+
+export interface SellPreview {
+    valid: boolean;
+    error?: string;
+    realized_pnl?: string;
+    remaining_qty?: string;
+    remaining_invested?: string;
+    remaining_avg_cost?: string;
+    fully_exits?: boolean;
+    lots_consumed?: Array<{
+        trade_date: string;
+        qty_consumed: string;
+        cost_per_share: string;
+        realized_pnl: string;
+    }>;
+}
+
+export interface SellResponse {
+    message: string;
+    status: "active" | "closed";
+    transaction: Transaction;
+    holding: Holding | null;
+    realized_total?: string;
+}
+
 // ── Endpoint wrappers ────────────────────────────────────────────────────────
 
 export const api = {
@@ -303,6 +346,27 @@ export const api = {
     updateHolding: (isin: string, payload: UpdateHoldingPayload): Promise<Holding> =>
         apiFetch(`/portfolio/holdings/${isin}`, {
             method: "PATCH",
+            body: JSON.stringify(payload),
+        }),
+
+    /** Record a BUY: creates or adds to a holding. */
+    recordBuy: (payload: BuyPayload): Promise<Holding> =>
+        apiFetch("/portfolio/holdings", {
+            method: "POST",
+            body: JSON.stringify(payload),
+        }),
+
+    /** Record a SELL: returns updated holding, or holding=null if fully exited. */
+    recordSell: (isin: string, payload: SellPayload): Promise<SellResponse> =>
+        apiFetch(`/portfolio/holdings/${isin}/sell`, {
+            method: "POST",
+            body: JSON.stringify(payload),
+        }),
+
+    /** Preview a SELL — no DB writes. Shows realized P&L, remaining qty, etc. */
+    previewSell: (isin: string, payload: SellPayload): Promise<SellPreview> =>
+        apiFetch(`/portfolio/holdings/${isin}/preview-sell`, {
+            method: "POST",
             body: JSON.stringify(payload),
         }),
 };
