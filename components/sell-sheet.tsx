@@ -89,7 +89,7 @@ export function SellSheet({ holding, open, onOpenChange }: SellSheetProps) {
             api.previewSell(holding.isin, {
                 quantity: qty.toString(),
                 price: price.toString(),
-                fees: "0",
+                total_fees: "0",
                 trade_date: new Date(tradeDate || today()).toISOString(),
             }),
         enabled: qty > 0 && price > 0 && qty <= availableQty,
@@ -101,13 +101,10 @@ export function SellSheet({ holding, open, onOpenChange }: SellSheetProps) {
             api.recordSell(holding.isin, {
                 quantity: values.quantity.toString(),
                 price: values.price.toString(),
-                fees: values.fees.toString(),
+                total_fees: values.fees.toString(),
                 trade_date: new Date(values.trade_date).toISOString(),
             }),
         onSuccess: (response) => {
-            const realized = response.transaction
-                ? "" // realized comes from preview; here just success
-                : "";
             if (response.holding === null) {
                 // Fully exited
                 toast.success(`Position closed — realized ${inrSigned(response.realized_total ?? "0")}`, {

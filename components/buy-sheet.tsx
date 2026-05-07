@@ -86,7 +86,7 @@ export function BuySheet({ holding, open, onOpenChange }: BuySheetProps) {
                 exchange: holding.exchange,
                 quantity: values.quantity.toString(),
                 price: values.price.toString(),
-                fees: values.fees.toString(),
+                total_fees: values.fees.toString(),
                 trade_date: new Date(values.trade_date).toISOString(),
             }),
         onSuccess: (updated) => {

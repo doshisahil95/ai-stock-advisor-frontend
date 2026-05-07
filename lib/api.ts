@@ -269,16 +269,17 @@ export interface BuyPayload {
     exchange?: string;
     quantity: string;
     price: string;
-    fees?: string;
-    trade_date: string; // ISO datetime
+    total_fees?: string;
+    trade_date: string;
+    notes?: string;
 }
 
 export interface SellPayload {
     quantity: string;
     price: string;
-    fees?: string;
+    total_fees?: string;
     trade_date: string;
-    source_ref?: string;
+    notes?: string;
 }
 
 export interface SellPreview {
