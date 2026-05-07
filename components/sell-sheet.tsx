@@ -31,7 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { api, ApiError, type Holding } from "@/lib/api";
+import { api, ApiError, isFullExit, type Holding } from "@/lib/api";
 import { colorForChange, inr, inrSigned } from "@/lib/format";
 
 const today = () => new Date().toISOString().split("T")[0];
@@ -108,9 +108,9 @@ export function SellSheet({ holding, open, onOpenChange }: SellSheetProps) {
                 trade_date: new Date(values.trade_date).toISOString(),
             }),
         onSuccess: async (response) => {
-            const fullyExited = response.status === "closed" || response.holding == null;
+            const fullyExited = isFullExit(response);
 
-            // Force-refetch (not just invalidate) so the page reflects new state immediately
+            // Force-refetch all dependent queries before showing toast
             await Promise.all([
                 queryClient.refetchQueries({ queryKey: ["holding", holding.isin] }),
                 queryClient.refetchQueries({ queryKey: ["transactions", holding.isin] }),
@@ -118,21 +118,20 @@ export function SellSheet({ holding, open, onOpenChange }: SellSheetProps) {
                 queryClient.refetchQueries({ queryKey: ["reconciliation"] }),
             ]);
 
+            onOpenChange(false);
+            setConfirmOpen(false);
+
             if (fullyExited) {
-                toast.success(`Position closed — realized ${inrSigned(response.realized_total ?? "0")}`, {
-                    description: "This page will redirect since the holding no longer exists.",
+                toast.success(`Position closed — realized ${inrSigned(response.realized_total)}`, {
+                    description: "This holding no longer exists. Returning to dashboard.",
                 });
-                onOpenChange(false);
-                setConfirmOpen(false);
                 // Brief delay so toast renders before navigation
-                setTimeout(() => router.push("/"), 1000);
+                setTimeout(() => router.push("/"), 1200);
             } else {
-                const remainingQty = response.holding?.quantity ?? "(unknown)";
+                // response is the updated Holding doc
                 toast.success(`Sold ${qty} ${holding.symbol} at ${inr(price)}`, {
-                    description: `${remainingQty} shares remaining`,
+                    description: `${response.quantity} shares remaining`,
                 });
-                onOpenChange(false);
-                setConfirmOpen(false);
             }
         },
         onError: (err: Error) => {

@@ -10,6 +10,8 @@ import { PriceChart } from "@/components/price-chart";
 import { TransactionsList } from "@/components/transactions-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function HoldingDetailPage() {
     const params = useParams<{ isin: string }>();
@@ -28,12 +30,29 @@ export default function HoldingDetailPage() {
             <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
                 {holdingQuery.isLoading && <DetailSkeleton />}
 
-                {holdingQuery.error && (
-                    <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
-                        <AlertCircle className="h-4 w-4" />
-                        <span>Couldn&apos;t load holding: {holdingQuery.error.message}</span>
-                    </div>
-                )}
+                {holdingQuery.error && (() => {
+                    const msg = holdingQuery.error.message;
+                    // 404 = position fully exited; show a friendly state instead of a red error
+                    if (msg.includes("No active holding") || msg.includes("404")) {
+                        return (
+                            <div className="rounded-md border bg-card p-6 text-center">
+                                <p className="text-sm font-medium">This position has been closed</p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    The holding has been fully sold and is no longer in your active portfolio.
+                                </p>
+                                <Button asChild variant="outline" size="sm" className="mt-4">
+                                    <Link href="/">← Back to dashboard</Link>
+                                </Button>
+                            </div>
+                        );
+                    }
+                    return (
+                        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
+                            <AlertCircle className="h-4 w-4" />
+                            <span>Couldn&apos;t load holding: {msg}</span>
+                        </div>
+                    );
+                })()}
 
                 {holdingQuery.data && (
                     <div className="space-y-6">

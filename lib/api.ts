@@ -298,12 +298,13 @@ export interface SellPreview {
     }>;
 }
 
-export interface SellResponse {
-    message: string;
-    status: "active" | "closed";
-    transaction: Transaction;
-    holding: Holding | null;
-    realized_total?: string;
+export type SellResponse =
+    | (Holding & { _id: string })  // partial sell — the updated holding
+    | { message: string; realized_total: string };  // full exit
+
+/** Type guard — was this sell a full exit? */
+export function isFullExit(r: SellResponse): r is { message: string; realized_total: string } {
+    return !("_id" in r);
 }
 
 // ── Endpoint wrappers ────────────────────────────────────────────────────────
