@@ -69,6 +69,8 @@ export function SellSheet({ holding, open, onOpenChange }: SellSheetProps) {
 
     useEffect(() => {
         if (open) {
+            // Force fresh holding data when sheet opens — avoids stale availableQty
+            queryClient.refetchQueries({ queryKey: ["holding", holding.isin] });
             form.reset({
                 quantity: 0,
                 price: currentPrice,
@@ -76,7 +78,8 @@ export function SellSheet({ holding, open, onOpenChange }: SellSheetProps) {
                 trade_date: today(),
             });
         }
-    }, [open, currentPrice, form]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open]);
 
     const qty = Number(form.watch("quantity")) || 0;
     const price = Number(form.watch("price")) || 0;
@@ -104,27 +107,30 @@ export function SellSheet({ holding, open, onOpenChange }: SellSheetProps) {
                 total_fees: values.fees.toString(),
                 trade_date: new Date(values.trade_date).toISOString(),
             }),
-        onSuccess: (response) => {
-            if (response.holding == null) {
-                // Fully exited
+        onSuccess: async (response) => {
+            const fullyExited = response.status === "closed" || response.holding == null;
+
+            // Force-refetch (not just invalidate) so the page reflects new state immediately
+            await Promise.all([
+                queryClient.refetchQueries({ queryKey: ["holding", holding.isin] }),
+                queryClient.refetchQueries({ queryKey: ["transactions", holding.isin] }),
+                queryClient.refetchQueries({ queryKey: ["dashboard"] }),
+                queryClient.refetchQueries({ queryKey: ["reconciliation"] }),
+            ]);
+
+            if (fullyExited) {
                 toast.success(`Position closed — realized ${inrSigned(response.realized_total ?? "0")}`, {
-                    description: "Returning to dashboard.",
+                    description: "This page will redirect since the holding no longer exists.",
                 });
-                queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-                queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
                 onOpenChange(false);
                 setConfirmOpen(false);
-                // Small delay so toast is visible during navigation
-                setTimeout(() => router.push("/"), 600);
+                // Brief delay so toast renders before navigation
+                setTimeout(() => router.push("/"), 1000);
             } else {
                 const remainingQty = response.holding?.quantity ?? "(unknown)";
                 toast.success(`Sold ${qty} ${holding.symbol} at ${inr(price)}`, {
                     description: `${remainingQty} shares remaining`,
                 });
-                queryClient.invalidateQueries({ queryKey: ["holding", holding.isin] });
-                queryClient.invalidateQueries({ queryKey: ["transactions", holding.isin] });
-                queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-                queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
                 onOpenChange(false);
                 setConfirmOpen(false);
             }

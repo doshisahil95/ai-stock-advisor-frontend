@@ -19,6 +19,8 @@ export default function HoldingDetailPage() {
         queryKey: ["holding", isin],
         queryFn: () => api.getHolding(isin),
         enabled: !!isin,
+        staleTime: 0, // Always fresh on mount — buy/sell operations make this critical
+        refetchOnMount: "always",
     });
 
     return (

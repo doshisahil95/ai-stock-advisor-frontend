@@ -58,6 +58,7 @@ export function BuySheet({ holding, open, onOpenChange }: BuySheetProps) {
     // Reset form when sheet opens or current price changes
     useEffect(() => {
         if (open) {
+            queryClient.refetchQueries({ queryKey: ["holding", holding.isin] });
             form.reset({
                 quantity: 0,
                 price: currentPrice,
@@ -66,7 +67,8 @@ export function BuySheet({ holding, open, onOpenChange }: BuySheetProps) {
                 notes: "",
             });
         }
-    }, [open, currentPrice, form]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open]);
 
     // Live preview of new average cost
     const qty = Number(form.watch("quantity")) || 0;
@@ -89,15 +91,18 @@ export function BuySheet({ holding, open, onOpenChange }: BuySheetProps) {
                 total_fees: values.fees.toString(),
                 trade_date: new Date(values.trade_date).toISOString(),
             }),
-        onSuccess: (updated) => {
+        onSuccess: async (updated) => {
+            // Force-refetch (not just invalidate) so the page reflects new state immediately
+            await Promise.all([
+                queryClient.refetchQueries({ queryKey: ["holding", holding.isin] }),
+                queryClient.refetchQueries({ queryKey: ["transactions", holding.isin] }),
+                queryClient.refetchQueries({ queryKey: ["dashboard"] }),
+                queryClient.refetchQueries({ queryKey: ["reconciliation"] }),
+            ]);
             toast.success(
-                `Recorded BUY of ${qty} ${holding.symbol} at ₹${price}`,
+                `Recorded BUY of ${qty} ${holding.symbol} at ${inr(price)}`,
                 { description: `New avg cost: ${inr(updated.avg_cost)}` }
             );
-            queryClient.invalidateQueries({ queryKey: ["holding", holding.isin] });
-            queryClient.invalidateQueries({ queryKey: ["transactions", holding.isin] });
-            queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-            queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
             onOpenChange(false);
         },
         onError: (err: Error) => {
