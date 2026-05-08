@@ -13,44 +13,52 @@ import { api } from "@/lib/api";
 import { dateTime } from "@/lib/format";
 
 /**
- * Header badge that summarizes reconciliation state at a glance.
+ * Header badge that summarizes broker-reconciliation state.
  *
- * Three states:
- * - "synced" (green): latest manual snapshot has no drift
- * - "drift"  (red):   latest manual snapshot has has_drift=true
- * - "stale"  (amber): no manual snapshot in last 30 days OR none exists
+ * Color/label is driven by the latest MANUAL snapshot (the only kind that compares
+ * with ICICI). The tooltip also surfaces the latest AUTO snapshot so it's clear
+ * the cron is still running even when no manual check has happened.
  */
 export function ReconciliationBadge() {
-    const { data, isLoading } = useQuery({
+    const manualQuery = useQuery({
         queryKey: ["reconciliation", "latest", "manual"],
         queryFn: () => api.getLatestReconciliation("manual"),
     });
+    const autoQuery = useQuery({
+        queryKey: ["reconciliation", "latest", "auto"],
+        queryFn: () => api.getLatestReconciliation("auto"),
+    });
 
-    if (isLoading) return null;
+    if (manualQuery.isLoading || autoQuery.isLoading) return null;
 
-    const snapshot = data;
+    const manual = manualQuery.data;
+    const auto = autoQuery.data;
     const now = Date.now();
-    const takenAt = snapshot ? new Date(snapshot.taken_at).getTime() : 0;
-    const daysSince = snapshot
-        ? Math.floor((now - takenAt) / (1000 * 60 * 60 * 24))
+    const manualTakenAt = manual ? new Date(manual.taken_at).getTime() : 0;
+    const daysSinceManual = manual
+        ? Math.floor((now - manualTakenAt) / (1000 * 60 * 60 * 24))
         : null;
 
     let state: "synced" | "drift" | "stale";
-    let tooltipText: string;
+    let primaryLine: string;
 
-    if (!snapshot) {
+    if (!manual) {
         state = "stale";
-        tooltipText = "No reconciliation snapshot yet. Click to set baseline.";
-    } else if (snapshot.has_drift) {
+        primaryLine = "No broker check yet. Click to set baseline.";
+    } else if (manual.has_drift) {
         state = "drift";
-        tooltipText = `Drift detected on ${dateTime(snapshot.taken_at)}. Click to investigate.`;
-    } else if (daysSince !== null && daysSince > 30) {
+        primaryLine = `Drift detected on broker check ${dateTime(manual.taken_at)}.`;
+    } else if (daysSinceManual !== null && daysSinceManual > 30) {
         state = "stale";
-        tooltipText = `Last reconciled ${dateTime(snapshot.taken_at)} (${daysSince}d ago). Consider a fresh check.`;
+        primaryLine = `Last broker check: ${dateTime(manual.taken_at)} (${daysSinceManual}d ago). Consider a fresh check.`;
     } else {
         state = "synced";
-        tooltipText = `Last reconciled ${dateTime(snapshot.taken_at)}. No drift.`;
+        primaryLine = `Last broker check: ${dateTime(manual.taken_at)}. No drift.`;
     }
+
+    const autoLine = auto
+        ? `Latest auto-snapshot (system-side only): ${dateTime(auto.taken_at)}.`
+        : "No auto-snapshot recorded yet.";
 
     const config = {
         synced: {
@@ -69,7 +77,7 @@ export function ReconciliationBadge() {
             Icon: HelpCircle,
             className:
                 "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-400 dark:hover:bg-amber-950/50",
-            label: snapshot ? `${daysSince}d old` : "Not reconciled",
+            label: manual ? `${daysSinceManual}d old` : "Not reconciled",
         },
     }[state];
 
@@ -90,8 +98,9 @@ export function ReconciliationBadge() {
                     </Link>
                 </Button>
             </TooltipTrigger>
-            <TooltipContent>
-                <p className="text-xs">{tooltipText}</p>
+            <TooltipContent className="max-w-xs">
+                <p className="text-xs">{primaryLine}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{autoLine}</p>
             </TooltipContent>
         </Tooltip>
     );
