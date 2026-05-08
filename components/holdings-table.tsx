@@ -71,11 +71,8 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
     const filtered = useMemo(() => {
         if (!search.trim()) return holdings;
         const q = search.trim().toUpperCase();
-        return holdings.filter(
-            (h) =>
-                h.symbol.toUpperCase().includes(q) ||
-                (h.name ?? "").toUpperCase().includes(q)
-        );
+        // Symbol prefix match — matches what the user types as if typing a ticker
+        return holdings.filter((h) => h.symbol.toUpperCase().startsWith(q));
     }, [holdings, search]);
 
     const sorted = useMemo(() => {
