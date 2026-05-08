@@ -14,6 +14,7 @@ import { ReconciliationBadge } from "@/components/reconciliation-badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Layers } from "lucide-react";
+import { RecentActivityCard } from "@/components/recent-activity-card";
 
 export default function DashboardPage() {
   const summaryQuery = useQuery({
@@ -86,6 +87,8 @@ export default function DashboardPage() {
             </div>
 
             <HoldingsTable holdings={holdingsQuery.data} />
+
+            <RecentActivityCard />
           </div>
         )}
       </div>
