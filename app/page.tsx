@@ -1,10 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, Layers } from "lucide-react";
+import { AlertCircle, History, Layers } from "lucide-react";
 import Link from "next/link";
 import { HoldingsTable } from "@/components/holdings-table";
-import { RecentActivityCard } from "@/components/recent-activity-card";
 import { ReconciliationBadge } from "@/components/reconciliation-badge";
 import { RefreshButton } from "@/components/refresh-button";
 import { SectorBreakdown } from "@/components/sector-breakdown";
@@ -14,6 +13,7 @@ import { TotalsRow } from "@/components/totals-row";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { dateTime } from "@/lib/format";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function DashboardPage() {
   const summaryQuery = useQuery({
@@ -51,8 +51,15 @@ export default function DashboardPage() {
                 Transactions
               </Link>
             </Button>
+            <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
+              <Link href="/transactions/audit">
+                <History className="h-3.5 w-3.5" />
+                Audit
+              </Link>
+            </Button>
             <ReconciliationBadge />
             <RefreshButton />
+            <ThemeToggle />
           </div>
         </header>
 
@@ -86,8 +93,6 @@ export default function DashboardPage() {
             </div>
 
             <HoldingsTable holdings={holdingsQuery.data} />
-
-            <RecentActivityCard />
           </div>
         )}
       </div>

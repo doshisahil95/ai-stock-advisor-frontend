@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import { Providers } from "./providers";
 import { Toaster } from "sonner";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
   title: "Portfolio Advisor",
@@ -21,9 +22,11 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${GeistSans.variable} ${GeistMono.variable}`}
     >
-      <body className="font-sans antialiased">
-        <Providers>{children}</Providers>
-        <Toaster richColors position="top-right" closeButton />
+      <body className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <Providers>{children}</Providers>
+          <Toaster richColors position="top-right" closeButton />
+        </ThemeProvider>
       </body>
     </html>
   );
