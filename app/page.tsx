@@ -1,20 +1,19 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Layers } from "lucide-react";
+import Link from "next/link";
 import { HoldingsTable } from "@/components/holdings-table";
+import { RecentActivityCard } from "@/components/recent-activity-card";
+import { ReconciliationBadge } from "@/components/reconciliation-badge";
 import { RefreshButton } from "@/components/refresh-button";
 import { SectorBreakdown } from "@/components/sector-breakdown";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TopMovers } from "@/components/top-movers";
 import { TotalsRow } from "@/components/totals-row";
+import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { dateTime } from "@/lib/format";
-import { ReconciliationBadge } from "@/components/reconciliation-badge";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { Layers } from "lucide-react";
-import { RecentActivityCard } from "@/components/recent-activity-card";
 
 export default function DashboardPage() {
   const summaryQuery = useQuery({
