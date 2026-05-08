@@ -307,6 +307,31 @@ export function isFullExit(r: SellResponse): r is { message: string; realized_to
     return !("_id" in r);
 }
 
+export interface EditTransactionPayload {
+    quantity?: string;
+    price?: string;
+    trade_date?: string;
+    total_fees?: string;
+    notes?: string;
+    reason?: string;
+}
+
+export interface TransactionSearchParams {
+    symbol?: string;
+    type?: "BUY" | "SELL" | "SPLIT" | "BONUS" | "DIVIDEND";
+    from_date?: string;
+    to_date?: string;
+    limit?: number;
+    skip?: number;
+}
+
+export interface TransactionSearchResponse {
+    transactions: Transaction[];
+    total: number;
+    limit: number;
+    skip: number;
+}
+
 // ── Endpoint wrappers ────────────────────────────────────────────────────────
 
 export const api = {
@@ -370,5 +395,37 @@ export const api = {
         apiFetch(`/portfolio/holdings/${isin}/preview-sell`, {
             method: "POST",
             body: JSON.stringify(payload),
+        }),
+
+    /** Search/list transactions with filters. */
+    searchTransactions: (
+        params?: TransactionSearchParams
+    ): Promise<TransactionSearchResponse> => {
+        const qs = new URLSearchParams();
+        if (params?.symbol) qs.set("symbol", params.symbol);
+        if (params?.type) qs.set("type", params.type);
+        if (params?.from_date) qs.set("from_date", params.from_date);
+        if (params?.to_date) qs.set("to_date", params.to_date);
+        if (params?.limit) qs.set("limit", String(params.limit));
+        if (params?.skip) qs.set("skip", String(params.skip));
+        const query = qs.toString();
+        return apiFetch(`/transactions/search${query ? `?${query}` : ""}`);
+    },
+
+    /** Edit one transaction (recomputes the holding; logs audit). */
+    editTransaction: (txId: string, payload: EditTransactionPayload): Promise<Transaction> =>
+        apiFetch(`/transactions/${txId}`, {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+        }),
+
+    /** Soft-delete one transaction (recomputes the holding; logs audit). */
+    deleteTransaction: (
+        txId: string,
+        reason?: string
+    ): Promise<{ message: string; isin: string; symbol: string }> =>
+        apiFetch(`/transactions/${txId}`, {
+            method: "DELETE",
+            body: JSON.stringify({ reason: reason ?? "" }),
         }),
 };

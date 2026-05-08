@@ -11,6 +11,9 @@ import { TotalsRow } from "@/components/totals-row";
 import { api } from "@/lib/api";
 import { dateTime } from "@/lib/format";
 import { ReconciliationBadge } from "@/components/reconciliation-badge";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Layers } from "lucide-react";
 
 export default function DashboardPage() {
   const summaryQuery = useQuery({
@@ -42,6 +45,12 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm" className="gap-1.5">
+              <Link href="/transactions">
+                <Layers className="h-3.5 w-3.5" />
+                Transactions
+              </Link>
+            </Button>
             <ReconciliationBadge />
             <RefreshButton />
           </div>
