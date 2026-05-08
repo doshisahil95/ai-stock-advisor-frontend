@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
     Card,
@@ -10,6 +10,8 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
     Table,
     TableBody,
@@ -51,7 +53,6 @@ const HEADERS: { key: SortKey; label: string; align: "left" | "right" }[] = [
 ];
 
 function getValue(h: Holding, key: SortKey): number | string {
-    // We use any to handle the str-vs-number coercion of Decimals in the API
     const raw = (h as unknown as Record<string, unknown>)[key];
     if (raw === null || raw === undefined) return -Infinity;
     if (typeof raw === "string") {
@@ -64,10 +65,21 @@ function getValue(h: Holding, key: SortKey): number | string {
 export function HoldingsTable({ holdings }: HoldingsTableProps) {
     const [sortKey, setSortKey] = useState<SortKey>("current_value");
     const [sortDir, setSortDir] = useState<SortDir>("desc");
+    const [search, setSearch] = useState("");
     const router = useRouter();
 
+    const filtered = useMemo(() => {
+        if (!search.trim()) return holdings;
+        const q = search.trim().toUpperCase();
+        return holdings.filter(
+            (h) =>
+                h.symbol.toUpperCase().includes(q) ||
+                (h.name ?? "").toUpperCase().includes(q)
+        );
+    }, [holdings, search]);
+
     const sorted = useMemo(() => {
-        const copy = [...holdings];
+        const copy = [...filtered];
         copy.sort((a, b) => {
             const av = getValue(a, sortKey);
             const bv = getValue(b, sortKey);
@@ -78,7 +90,7 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
             return sortDir === "asc" ? cmp : -cmp;
         });
         return copy;
-    }, [holdings, sortKey, sortDir]);
+    }, [filtered, sortKey, sortDir]);
 
     const handleSort = (key: SortKey) => {
         if (key === sortKey) {
@@ -92,10 +104,37 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Holdings ({holdings.length})</CardTitle>
-                <CardDescription>
-                    Click any column header to sort. Default: highest current value first.
-                </CardDescription>
+                <div className="flex flex-wrap items-baseline justify-between gap-3">
+                    <div>
+                        <CardTitle>
+                            Holdings ({filtered.length}
+                            {filtered.length !== holdings.length ? ` of ${holdings.length}` : ""})
+                        </CardTitle>
+                        <CardDescription>
+                            Click any column header to sort. Default: highest current value first.
+                        </CardDescription>
+                    </div>
+                    <div className="relative w-full max-w-xs">
+                        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            placeholder="Search symbol or name…"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="h-9 pl-8 pr-8"
+                        />
+                        {search && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2"
+                                onClick={() => setSearch("")}
+                                aria-label="Clear search"
+                            >
+                                <X className="h-3 w-3" />
+                            </Button>
+                        )}
+                    </div>
+                </div>
             </CardHeader>
             <CardContent>
                 <div className="overflow-x-auto">
@@ -121,18 +160,24 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
+                            {sorted.length === 0 && (
+                                <TableRow>
+                                    <TableCell
+                                        colSpan={HEADERS.length}
+                                        className="py-8 text-center text-sm text-muted-foreground"
+                                    >
+                                        No holdings match &ldquo;{search}&rdquo;.
+                                    </TableCell>
+                                </TableRow>
+                            )}
                             {sorted.map((h) => (
                                 <TableRow
                                     key={h.isin}
                                     className="cursor-pointer hover:bg-accent/40"
                                     onClick={() => router.push(`/holdings/${h.isin}`)}
                                 >
-                                    <TableCell className="font-mono font-medium">
-                                        {h.symbol}
-                                    </TableCell>
-                                    <TableCell className="text-right font-mono">
-                                        {h.quantity}
-                                    </TableCell>
+                                    <TableCell className="font-mono font-medium">{h.symbol}</TableCell>
+                                    <TableCell className="text-right font-mono">{h.quantity}</TableCell>
                                     <TableCell className="text-right font-mono text-sm">
                                         {inr(h.avg_cost)}
                                     </TableCell>
@@ -140,9 +185,7 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
                                         {inr(h.current_price)}
                                     </TableCell>
                                     <TableCell
-                                        className={`text-right font-mono text-sm ${colorForChange(
-                                            h.day_gain_pct
-                                        )}`}
+                                        className={`text-right font-mono text-sm ${colorForChange(h.day_gain_pct)}`}
                                     >
                                         {pct(h.day_gain_pct)}
                                     </TableCell>
@@ -153,16 +196,12 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
                                         {inr(h.current_value)}
                                     </TableCell>
                                     <TableCell
-                                        className={`text-right font-mono text-sm ${colorForChange(
-                                            h.unrealized_pnl
-                                        )}`}
+                                        className={`text-right font-mono text-sm ${colorForChange(h.unrealized_pnl)}`}
                                     >
                                         {inrSigned(h.unrealized_pnl)}
                                     </TableCell>
                                     <TableCell
-                                        className={`text-right font-mono text-sm font-medium ${colorForChange(
-                                            h.unrealized_pnl_pct
-                                        )}`}
+                                        className={`text-right font-mono text-sm font-medium ${colorForChange(h.unrealized_pnl_pct)}`}
                                     >
                                         {pct(h.unrealized_pnl_pct)}
                                     </TableCell>

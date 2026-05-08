@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, HelpCircle } from "lucide-react";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
     Tooltip,
     TooltipContent,
@@ -75,15 +75,20 @@ export function ReconciliationBadge() {
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <Link
-                    href="/reconciliation"
-                    aria-label="Reconciliation status"
+                <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 gap-1.5 ${className}`}
                 >
-                    <Badge variant="outline" className={`gap-1.5 ${className} hover:opacity-80`}>
-                        <Icon className="h-3 w-3" />
-                        <span className="text-xs font-medium">{label}</span>
-                    </Badge>
-                </Link>
+                    <Link
+                        href="/reconciliation"
+                        aria-label="Reconciliation status"
+                    >
+                        <Icon className="h-3.5 w-3.5" />
+                        {label}
+                    </Link>
+                </Button>
             </TooltipTrigger>
             <TooltipContent>
                 <p className="text-xs">{tooltipText}</p>

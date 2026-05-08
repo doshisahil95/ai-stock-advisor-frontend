@@ -20,7 +20,7 @@ export function TopMovers({ gainers, losers }: TopMoversProps) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Top Movers</CardTitle>
+                <CardTitle>Top Movers (Top 5)</CardTitle>
                 <CardDescription>
                     By percentage change since your purchase
                 </CardDescription>

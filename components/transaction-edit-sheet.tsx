@@ -125,7 +125,7 @@ export function TransactionEditSheet({ transaction, open, onOpenChange }: EditSh
                 >
                     <div className="grid grid-cols-2 gap-3">
                         <FormField label="Quantity" error={form.formState.errors.quantity?.message}>
-                            <Input type="number" step="0.0001" {...form.register("quantity")} />
+                            <Input type="number" step="1" min="1" {...form.register("quantity")} />
                         </FormField>
                         <FormField label="Price (₹)" error={form.formState.errors.price?.message}>
                             <Input type="number" step="0.01" {...form.register("price")} />

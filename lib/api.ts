@@ -332,6 +332,19 @@ export interface TransactionSearchResponse {
     skip: number;
 }
 
+// ── Audit log types ──────────────────────────────────────────────────────────
+
+export interface TransactionAuditEntry {
+    _id: string;
+    transaction_id: string;
+    isin: string;
+    action: "edit" | "delete";
+    before: Record<string, unknown>;
+    after: Record<string, unknown> | null;
+    reason: string;
+    changed_at: string;
+}
+
 // ── Endpoint wrappers ────────────────────────────────────────────────────────
 
 export const api = {
@@ -428,4 +441,12 @@ export const api = {
             method: "DELETE",
             body: JSON.stringify({ reason: reason ?? "" }),
         }),
+
+    /** Recent audit entries across all transactions (for the audit trail page). */
+    getRecentAudit: (limit = 50): Promise<TransactionAuditEntry[]> =>
+        apiFetch(`/transactions/audit/recent?limit=${limit}`),
+
+    /** Audit history for a single transaction. */
+    getTransactionAudit: (txId: string): Promise<TransactionAuditEntry[]> =>
+        apiFetch(`/transactions/${txId}/audit`),
 };

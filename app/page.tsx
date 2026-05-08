@@ -45,7 +45,7 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button asChild variant="outline" size="sm" className="gap-1.5">
+            <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
               <Link href="/transactions">
                 <Layers className="h-3.5 w-3.5" />
                 Transactions

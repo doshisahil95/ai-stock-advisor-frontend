@@ -32,7 +32,7 @@ export function RefreshButton() {
                     size="sm"
                     onClick={handleRefresh}
                     disabled={refreshing}
-                    className="gap-2"
+                    className="h-8 gap-1.5"
                 >
                     <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
                     Refresh
