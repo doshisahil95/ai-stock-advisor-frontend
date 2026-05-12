@@ -345,6 +345,126 @@ export interface TransactionAuditEntry {
     changed_at: string;
 }
 
+// ── Suggestions types ────────────────────────────────────────────────────────
+
+export interface SuggestionGate {
+    gate_name: string;
+    passed: boolean;
+    threshold: string;
+    actual_value: string;
+    skipped: boolean;
+    skip_reason: string;
+}
+
+export interface SuggestionSignal {
+    signal_name: string;
+    raw_value: string;
+    normalized_score: number;
+    weight: number;
+    available: boolean;
+}
+
+export interface SuggestionCandidate {
+    isin: string;
+    symbol: string;
+    name: string;
+    sector: string;
+    composite_score: number;
+    rank: number;
+    confidence_score: number;
+    confidence_deductions: string[];
+    quality_score: number;
+    valuation_score: number;
+    momentum_score: number;
+    news_score: number;
+    signals: SuggestionSignal[];
+    gates: SuggestionGate[];
+    gates_passed: number;
+    gates_failed: number;
+    gates_skipped: number;
+    current_price: string | null;
+    fundamentals_fetched_at: string | null;
+    price_as_of: string | null;
+}
+
+export interface SuggestionDossier {
+    isin: string;
+    symbol: string;
+    one_line_thesis: string;
+    bull_case: string[];
+    bear_case: string[];
+    key_risks: string[];
+    valuation_verdict: string;
+    portfolio_fit: string;
+    narrative_unavailable?: boolean;
+    narrative_unavailable_reason?: string;
+    model?: string;
+}
+
+export interface SuggestionRunSummary {
+    _id: string;
+    run_date: string;
+    run_date_ist: string;
+    run_type: string;
+    status: string;
+    universe_size: number;
+    candidates_post_gates: number;
+    top_k: number;
+}
+
+export interface SuggestionRun {
+    _id: string;
+    run_date: string;
+    run_date_ist: string;
+    run_type: string;
+    status: string;
+    universe_size: number;
+    excluded_held: number;
+    excluded_rejected: number;
+    excluded_stale_data: number;
+    candidates_considered: number;
+    candidates_post_gates: number;
+    top_k: number;
+    top_candidates: SuggestionCandidate[];
+    dossiers: SuggestionDossier[];
+}
+
+export interface SuggestionRunsList {
+    runs: SuggestionRunSummary[];
+    total: number;
+    limit: number;
+    skip: number;
+}
+
+export interface SuggestionPerformanceWindow {
+    samples: number;
+    avg_excess_return_pct: number | null;
+    avg_stock_return_pct: number | null;
+    avg_nifty_return_pct: number | null;
+    win_rate_pct: number | null;
+}
+
+export interface SuggestionPerformance {
+    windows: {
+        "30d": SuggestionPerformanceWindow;
+        "60d": SuggestionPerformanceWindow;
+        "90d": SuggestionPerformanceWindow;
+        "180d": SuggestionPerformanceWindow;
+    };
+    total_outcomes_tracked: number;
+    open: number;
+    acted: number;
+    passed: number;
+    expired: number;
+}
+
+export type FeedbackAction = "acted" | "passed" | "rejected";
+
+export interface FeedbackPayload {
+    action: FeedbackAction;
+    note?: string;
+}
+
 // ── Endpoint wrappers ────────────────────────────────────────────────────────
 
 export const api = {
@@ -449,4 +569,27 @@ export const api = {
     /** Audit history for a single transaction. */
     getTransactionAudit: (txId: string): Promise<TransactionAuditEntry[]> =>
         apiFetch(`/transactions/${txId}/audit`),
+
+    // ── Suggestions ────────────────────────────────────────────────────────────
+
+    getLatestSuggestionRun: (): Promise<SuggestionRun> =>
+        apiFetch("/suggestions/latest"),
+
+    listSuggestionRuns: (limit = 20, skip = 0): Promise<SuggestionRunsList> =>
+        apiFetch(`/suggestions/runs?limit=${limit}&skip=${skip}`),
+
+    getSuggestionRun: (runId: string): Promise<SuggestionRun> =>
+        apiFetch(`/suggestions/runs/${runId}`),
+
+    getSuggestionPerformance: (): Promise<SuggestionPerformance> =>
+        apiFetch("/suggestions/performance"),
+
+    submitFeedback: (
+        isin: string,
+        payload: FeedbackPayload
+    ): Promise<{ isin: string; action: string; status: string }> =>
+        apiFetch(`/suggestions/${isin}/feedback`, {
+            method: "POST",
+            body: JSON.stringify(payload),
+        }),
 };

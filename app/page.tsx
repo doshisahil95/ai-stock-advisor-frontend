@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { dateTime } from "@/lib/format";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Sparkles } from "lucide-react";  // add to existing imports from lucide-react
 
 export default function DashboardPage() {
   const summaryQuery = useQuery({
@@ -45,6 +46,12 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
+              <Link href="/suggestions">
+                <Sparkles className="h-3.5 w-3.5" />
+                Suggestions
+              </Link>
+            </Button>
             <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
               <Link href="/transactions">
                 <Layers className="h-3.5 w-3.5" />
