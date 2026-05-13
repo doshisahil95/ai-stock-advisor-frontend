@@ -385,6 +385,10 @@ export interface SuggestionCandidate {
     current_price: string | null;
     fundamentals_fetched_at: string | null;
     price_as_of: string | null;
+    signal_meta?: SignalMeta[];
+    group_meta?: GroupMeta;
+    gate_meta?: GateMeta[];
+    confidence_meta?: ConfidenceMeta;
 }
 
 export interface SuggestionDossier {
@@ -399,6 +403,8 @@ export interface SuggestionDossier {
     narrative_unavailable?: boolean;
     narrative_unavailable_reason?: string;
     model?: string;
+    // Commit A enrichment
+    plain_english_summary?: string;
 }
 
 export interface SuggestionRunSummary {
@@ -427,6 +433,9 @@ export interface SuggestionRun {
     top_k: number;
     top_candidates: SuggestionCandidate[];
     dossiers: SuggestionDossier[];
+    // Commit A enrichment (run-level)
+    feedback_meta?: FeedbackMeta;
+    page_intro?: PageIntro;
 }
 
 export interface SuggestionRunsList {
@@ -442,6 +451,8 @@ export interface SuggestionPerformanceWindow {
     avg_stock_return_pct: number | null;
     avg_nifty_return_pct: number | null;
     win_rate_pct: number | null;
+    // Commit A.5 by-bucket breakdown (optional for backward compat)
+    by_bucket?: Record<BucketKey, PerformanceBucket>;
 }
 
 export interface SuggestionPerformance {
@@ -455,6 +466,7 @@ export interface SuggestionPerformance {
     open: number;
     acted: number;
     passed: number;
+    rejected: number;  // Commit A.5
     expired: number;
 }
 
@@ -463,6 +475,87 @@ export type FeedbackAction = "acted" | "passed" | "rejected";
 export interface FeedbackPayload {
     action: FeedbackAction;
     note?: string;
+}
+
+export interface SignalMeta {
+    signal_name: string;
+    display_name: string;
+    short_description: string;
+    what_higher_means: string;
+    raw_value_formatted: string;
+    normalized_score: number;
+    weight: number;
+    available: boolean;
+    group: "quality" | "valuation" | "momentum" | "news" | "";
+}
+
+export type GroupBand = "strong" | "ok" | "weak" | "unknown";
+
+export interface GroupMetaEntry {
+    display_name: string;
+    weight_pct: string;
+    what_it_measures: string;
+    score: number | null;
+    band: GroupBand;
+    this_candidate_interpretation: string;
+}
+
+export interface GroupMeta {
+    quality: GroupMetaEntry;
+    valuation: GroupMetaEntry;
+    momentum: GroupMetaEntry;
+    news: GroupMetaEntry;
+}
+
+export interface GateMeta {
+    gate_name: string;
+    display_name: string;
+    why_we_check: string;
+    passed: boolean;
+    skipped: boolean;
+    threshold: string;
+    actual_value: string;
+    skip_reason: string;
+    plain_english: string;
+}
+
+export type ConfidenceBand = "high" | "med" | "low" | "unknown";
+
+export interface ConfidenceMeta {
+    score: number | null;
+    band: ConfidenceBand;
+    what_it_means: string;
+    this_candidate_interpretation: string;
+    deduction_categories: string;
+    deductions: string[];
+}
+
+export interface FeedbackMetaEntry {
+    display_name: string;
+    what_it_does: string;
+    side_effects: string;
+}
+
+export interface FeedbackMeta {
+    acted: FeedbackMetaEntry;
+    passed: FeedbackMetaEntry;
+    rejected: FeedbackMetaEntry;
+}
+
+export interface PageIntro {
+    title: string;
+    summary: string;
+    bullets: string[];
+}
+
+// ── Performance by-bucket (Commit A.5) ───────────────────────────────────────
+
+export type BucketKey = "open" | "acted" | "passed" | "rejected" | "expired";
+
+export interface PerformanceBucket {
+    samples: number;
+    avg_excess_return_pct: number | null;
+    win_rate_pct: number | null;
 }
 
 // ── Endpoint wrappers ────────────────────────────────────────────────────────
