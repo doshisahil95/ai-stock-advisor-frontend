@@ -334,6 +334,8 @@ export interface TransactionSearchResponse {
 
 // ── Audit log types ──────────────────────────────────────────────────────────
 
+// ── Audit log types ──────────────────────────────────────────────────────────
+
 export interface TransactionAuditEntry {
     _id: string;
     transaction_id: string;
@@ -343,6 +345,23 @@ export interface TransactionAuditEntry {
     after: Record<string, unknown> | null;
     reason: string;
     changed_at: string;
+}
+
+/**
+ * F10 — one entry per /suggestions/{isin}/feedback write.
+ * Mirrors TransactionAuditEntry but for monitored_stocks feedback. Note
+ * the field name is `performed_at`, not `changed_at`, to match the
+ * locked schema in PROJECT_STATE §7.
+ */
+export interface MonitoredStocksAuditEntry {
+    _id: string;
+    isin: string;
+    action: FeedbackAction;
+    previous_status: string | null;
+    new_status: "tracking" | "passed" | "rejected" | "watchlist";
+    note: string;
+    performed_at: string;
+    _schema_version?: number;
 }
 
 // ── Suggestions types ────────────────────────────────────────────────────────
@@ -389,6 +408,22 @@ export interface SuggestionCandidate {
     group_meta?: GroupMeta;
     gate_meta?: GateMeta[];
     confidence_meta?: ConfidenceMeta;
+    // F6: stateful user feedback for this candidate, scoped to the current
+    // run's started_at. Null if no relevant feedback exists (or feedback
+    // predates the run, in which case the card should render fresh).
+    user_action?: UserAction | null;
+}
+
+/**
+ * F6 — stateful feedback the user gave on this candidate AT OR AFTER this
+ * run started. Stale feedback from earlier runs is intentionally excluded
+ * by the backend so a card surfaced fresh in a new run is not collapsed
+ * by old state.
+ */
+export interface UserAction {
+    action: FeedbackAction;
+    at: string; // ISO datetime
+    note: string;
 }
 
 export interface SuggestionDossier {
@@ -427,6 +462,7 @@ export interface SuggestionRun {
     universe_size: number;
     excluded_held: number;
     excluded_rejected: number;
+    excluded_acted?: number; // F5b — optional on legacy runs persisted pre-Chat 3
     excluded_stale_data: number;
     candidates_considered: number;
     candidates_post_gates: number;
@@ -680,9 +716,22 @@ export const api = {
     submitFeedback: (
         isin: string,
         payload: FeedbackPayload
-    ): Promise<{ isin: string; action: string; status: string }> =>
+    ): Promise<{
+        isin: string;
+        action: string;
+        status: string;
+        previous_status: string | null;
+    }> =>
         apiFetch(`/suggestions/${isin}/feedback`, {
             method: "POST",
             body: JSON.stringify(payload),
         }),
+
+    /** F10 — recent feedback actions across all monitored stocks. */
+    getRecentFeedbackAudit: (limit = 50): Promise<MonitoredStocksAuditEntry[]> =>
+        apiFetch(`/suggestions/feedback/audit/recent?limit=${limit}`),
+
+    /** F10 — feedback audit history for one ISIN, newest first. */
+    getFeedbackAuditForIsin: (isin: string): Promise<MonitoredStocksAuditEntry[]> =>
+        apiFetch(`/suggestions/${isin}/audit`),
 };

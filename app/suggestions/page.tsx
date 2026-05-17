@@ -32,12 +32,10 @@ const BUCKET_LABEL: Record<BucketKey, string> = {
 export default function SuggestionsPage() {
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState("latest");
-
-    // Track ISINs the user gave feedback on this session — those vanish from
-    // the list immediately. Cleared on hard refresh, which is fine.
-    const [actedThisSession, setActedThisSession] = useState<Set<string>>(
-        new Set(),
-    );
+    // F6: feedback state is server-side. The /suggestions/latest response
+    // stamps each candidate with user_action so the card renders collapsed.
+    // After a mutation we refetch (await) so the toast lands AFTER the page
+    // reflects the new state (PROJECT_STATE §14.4 convention).
 
     const latestQuery = useQuery({
         queryKey: ["suggestions", "latest"],
@@ -70,26 +68,26 @@ export default function SuggestionsPage() {
             action: FeedbackAction;
             note?: string;
         }) => api.submitFeedback(isin, { action, note }),
-        onSuccess: (_, vars) => {
+        onSuccess: async (_, vars) => {
+            // Synchronous refetch so the user_action stamp lands BEFORE the
+            // toast (PROJECT_STATE §14.4 — refetchQueries, not invalidateQueries).
+            await Promise.all([
+                queryClient.refetchQueries({ queryKey: ["suggestions", "latest"] }),
+                queryClient.refetchQueries({ queryKey: ["suggestions", "performance"] }),
+            ]);
             const verb =
                 vars.action === "acted"
                     ? "Acted on"
                     : vars.action === "passed"
                         ? "Passed on"
                         : "Rejected";
-            toast.success(`${verb} ${vars.isin}`, {
-                description:
-                    vars.action === "rejected"
-                        ? "Will not appear again for 90 days."
-                        : "Performance will continue to be tracked.",
-            });
-            // Vanish the card from the list
-            setActedThisSession((prev) => {
-                const next = new Set(prev);
-                next.add(vars.isin);
-                return next;
-            });
-            queryClient.invalidateQueries({ queryKey: ["suggestions", "performance"] });
+            const description =
+                vars.action === "rejected"
+                    ? "Hidden from suggestions for 90 days."
+                    : vars.action === "acted"
+                        ? "Soft-excluded for 30 days while the trade settles. Tracking continues."
+                        : "Will resurface next Sunday — market changes.";
+            toast.success(`${verb} ${vars.isin}`, { description });
         },
         onError: (error) => {
             toast.error(`Feedback failed: ${error.message}`);
@@ -213,38 +211,44 @@ export default function SuggestionsPage() {
                                             </Card>
                                         );
                                     }
-                                    const visible = all.filter(
-                                        (c) => !actedThisSession.has(c.isin),
+
+                                    // F6: every candidate is rendered. Ones the user has
+                                    // actioned during this run come back from the API with
+                                    // user_action set and the SuggestionCard renders a
+                                    // collapsed badge row. The banner above the list fires
+                                    // only when nothing is left to do.
+                                    const allActioned = all.every((c) => c.user_action != null);
+                                    return (
+                                        <>
+                                            {allActioned && (
+                                                <Card className="border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-950/20">
+                                                    <CardContent className="py-3 text-sm">
+                                                        <p className="font-medium">All caught up.</p>
+                                                        <p className="mt-1 text-muted-foreground">
+                                                            You&apos;ve given feedback on all {all.length}{" "}
+                                                            suggestions in this run. New suggestions arrive
+                                                            every Sunday.
+                                                        </p>
+                                                    </CardContent>
+                                                </Card>
+                                            )}
+                                            {all.map((c) => {
+                                                const dossier = latestQuery.data!.dossiers.find(
+                                                    (d) => d.isin === c.isin,
+                                                );
+                                                return (
+                                                    <SuggestionCard
+                                                        key={c.isin}
+                                                        candidate={c}
+                                                        dossier={dossier}
+                                                        feedbackMeta={latestQuery.data!.feedback_meta}
+                                                        onFeedback={handleFeedback}
+                                                        feedbackPending={feedbackMutation.isPending}
+                                                    />
+                                                );
+                                            })}
+                                        </>
                                     );
-                                    if (visible.length === 0) {
-                                        return (
-                                            <Card>
-                                                <CardContent className="py-8 text-center text-sm">
-                                                    <p className="font-medium">All caught up.</p>
-                                                    <p className="mt-1 text-muted-foreground">
-                                                        You acted on, passed, or rejected all {all.length}{" "}
-                                                        suggestions in this run. New suggestions arrive
-                                                        every Sunday.
-                                                    </p>
-                                                </CardContent>
-                                            </Card>
-                                        );
-                                    }
-                                    return visible.map((c) => {
-                                        const dossier = latestQuery.data!.dossiers.find(
-                                            (d) => d.isin === c.isin,
-                                        );
-                                        return (
-                                            <SuggestionCard
-                                                key={c.isin}
-                                                candidate={c}
-                                                dossier={dossier}
-                                                feedbackMeta={latestQuery.data!.feedback_meta}
-                                                onFeedback={handleFeedback}
-                                                feedbackPending={feedbackMutation.isPending}
-                                            />
-                                        );
-                                    });
                                 })()}
                             </TabsContent>
 

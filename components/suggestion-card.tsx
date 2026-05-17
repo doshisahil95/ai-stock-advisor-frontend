@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Check, X, EyeOff } from "lucide-react";
+import { ChevronDown, ChevronUp, Check, X, EyeOff, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -14,10 +14,10 @@ import {
     GroupMetaEntry,
     SignalMeta,
     ConfidenceMeta,
+    UserAction,
 } from "@/lib/api";
 import { inr } from "@/lib/format";
 import { ExplainPopover } from "@/components/explain-popover";
-
 interface Props {
     candidate: SuggestionCandidate;
     dossier?: SuggestionDossier;
@@ -34,6 +34,22 @@ export function SuggestionCard({
     feedbackPending,
 }: Props) {
     const [expanded, setExpanded] = useState(false);
+    // F6: when the backend has stamped user_action (meaning the user already
+    // acted/passed/rejected this candidate during the current run), default
+    // to a collapsed badge row. "Show full card" promotes back to the normal
+    // rendering so the user can change their mind or re-read the dossier.
+    const userAction = candidate.user_action ?? null;
+    const [forceShowFull, setForceShowFull] = useState(false);
+    if (userAction && !forceShowFull) {
+        return (
+            <CollapsedFeedbackRow
+                candidate={candidate}
+                userAction={userAction}
+                feedbackMeta={feedbackMeta}
+                onShowFull={() => setForceShowFull(true)}
+            />
+        );
+    }
 
     const compositeColor =
         candidate.composite_score >= 70
@@ -313,6 +329,84 @@ export function SuggestionCard({
 }
 
 // ── Subcomponents ──────────────────────────────────────────────────────────
+
+// F6: compact one-row representation for candidates the user has already
+// given feedback on during the current run. Click "Show full card" to
+// promote back to the standard SuggestionCard rendering.
+function CollapsedFeedbackRow({
+    candidate,
+    userAction,
+    feedbackMeta,
+    onShowFull,
+}: {
+    candidate: SuggestionCandidate;
+    userAction: UserAction;
+    feedbackMeta?: FeedbackMeta;
+    onShowFull: () => void;
+}) {
+    const badge = badgeStyleFor(userAction.action);
+    const BadgeIcon = badge.Icon;
+    const fallbackLabel =
+        feedbackMeta?.[userAction.action]?.display_name ?? badge.text;
+    return (
+        <Card>
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <div className="flex min-w-0 flex-wrap items-baseline gap-3">
+                    <span className="font-mono text-sm text-muted-foreground">
+                        #{candidate.rank}
+                    </span>
+                    <span className="font-semibold">{candidate.symbol}</span>
+                    <span className="truncate text-sm text-muted-foreground">
+                        {candidate.name || candidate.sector || ""}
+                    </span>
+                    <span
+                        className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium ${badge.className}`}
+                    >
+                        <BadgeIcon className="h-3 w-3" />
+                        {fallbackLabel}
+                    </span>
+                </div>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 gap-1.5 text-muted-foreground hover:text-foreground"
+                    onClick={onShowFull}
+                >
+                    <Eye className="h-3.5 w-3.5" />
+                    Show full card
+                </Button>
+            </CardContent>
+        </Card>
+    );
+}
+
+function badgeStyleFor(action: FeedbackAction): {
+    className: string;
+    Icon: typeof Check;
+    text: string;
+} {
+    if (action === "acted") {
+        return {
+            className:
+                "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
+            Icon: Check,
+            text: "Acted",
+        };
+    }
+    if (action === "passed") {
+        return {
+            className:
+                "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300",
+            Icon: X,
+            text: "Passed",
+        };
+    }
+    return {
+        className: "bg-muted text-muted-foreground",
+        Icon: EyeOff,
+        text: "Rejected (90d)",
+    };
+}
 
 function GroupBar({
     fallbackLabel,
