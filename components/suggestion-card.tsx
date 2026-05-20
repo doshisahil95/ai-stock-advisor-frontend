@@ -80,6 +80,15 @@ export function SuggestionCard({
         dossier?.one_line_thesis &&
         !dossier.narrative_unavailable &&
         !dossier.one_line_thesis.startsWith("(");
+    const isSellSide = Boolean(groupMeta?.booking_opportunity);
+    const showTaxConsideration =
+        dossier?.tax_consideration &&
+        dossier.tax_consideration.length > 0 &&
+        !dossier.tax_consideration.startsWith("(");
+    const showConcentrationNote =
+        dossier?.concentration_note &&
+        dossier.concentration_note.length > 0 &&
+        !dossier.concentration_note.startsWith("(");
 
     return (
         <Card>
@@ -112,26 +121,53 @@ export function SuggestionCard({
 
                 {/* Per-group breakdown */}
                 <div className="mt-3 grid grid-cols-4 gap-2 text-xs">
-                    <GroupBar
-                        fallbackLabel="Quality"
-                        value={candidate.quality_score}
-                        meta={groupMeta?.quality}
-                    />
-                    <GroupBar
-                        fallbackLabel="Valuation"
-                        value={candidate.valuation_score}
-                        meta={groupMeta?.valuation}
-                    />
-                    <GroupBar
-                        fallbackLabel="Momentum"
-                        value={candidate.momentum_score}
-                        meta={groupMeta?.momentum}
-                    />
-                    <GroupBar
-                        fallbackLabel="News"
-                        value={candidate.news_score}
-                        meta={groupMeta?.news}
-                    />
+                    {isSellSide ? (
+                        <>
+                            <GroupBar
+                                fallbackLabel="Booking Opportunity"
+                                value={groupMeta?.booking_opportunity?.score ?? 0}
+                                meta={groupMeta?.booking_opportunity}
+                            />
+                            <GroupBar
+                                fallbackLabel="Valuation Stretch"
+                                value={groupMeta?.valuation_stretch?.score ?? 0}
+                                meta={groupMeta?.valuation_stretch}
+                            />
+                            <GroupBar
+                                fallbackLabel="Risk"
+                                value={groupMeta?.risk?.score ?? 0}
+                                meta={groupMeta?.risk}
+                            />
+                            <GroupBar
+                                fallbackLabel="Tax & Concentration"
+                                value={groupMeta?.tax_concentration?.score ?? 0}
+                                meta={groupMeta?.tax_concentration}
+                            />
+                        </>
+                    ) : (
+                        <>
+                            <GroupBar
+                                fallbackLabel="Quality"
+                                value={candidate.quality_score}
+                                meta={groupMeta?.quality}
+                            />
+                            <GroupBar
+                                fallbackLabel="Valuation"
+                                value={candidate.valuation_score}
+                                meta={groupMeta?.valuation}
+                            />
+                            <GroupBar
+                                fallbackLabel="Momentum"
+                                value={candidate.momentum_score}
+                                meta={groupMeta?.momentum}
+                            />
+                            <GroupBar
+                                fallbackLabel="News"
+                                value={candidate.news_score}
+                                meta={groupMeta?.news}
+                            />
+                        </>
+                    )}
                 </div>
 
                 {/* Plain-English summary (preferred over one-line thesis) */}
@@ -219,9 +255,20 @@ export function SuggestionCard({
                                 <Section label="Valuation verdict">
                                     <p className="text-sm">{dossier.valuation_verdict}</p>
                                 </Section>
-                                <Section label="Portfolio fit">
-                                    <p className="text-sm">{dossier.portfolio_fit}</p>
-                                </Section>
+                                {showTaxConsideration ? (
+                                    <Section label="Tax consideration">
+                                        <p className="text-sm">{dossier.tax_consideration}</p>
+                                    </Section>
+                                ) : null}
+                                {showConcentrationNote ? (
+                                    <Section label="Concentration note">
+                                        <p className="text-sm">{dossier.concentration_note}</p>
+                                    </Section>
+                                ) : dossier.portfolio_fit ? (
+                                    <Section label="Portfolio fit">
+                                        <p className="text-sm">{dossier.portfolio_fit}</p>
+                                    </Section>
+                                ) : null}
                             </div>
                         ) : (
                             <p className="text-sm italic text-muted-foreground">

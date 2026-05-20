@@ -16,6 +16,7 @@ import {
     FeedbackAction,
     ApiError,
     BucketKey,
+    SuggestionDirection,
     SuggestionPerformance,
     SuggestionRunSummary,
 } from "@/lib/api";
@@ -32,14 +33,15 @@ const BUCKET_LABEL: Record<BucketKey, string> = {
 export default function SuggestionsPage() {
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState("latest");
+    const [direction, setDirection] = useState<SuggestionDirection>("buy");
     // F6: feedback state is server-side. The /suggestions/latest response
     // stamps each candidate with user_action so the card renders collapsed.
     // After a mutation we refetch (await) so the toast lands AFTER the page
     // reflects the new state (PROJECT_STATE §14.4 convention).
 
     const latestQuery = useQuery({
-        queryKey: ["suggestions", "latest"],
-        queryFn: api.getLatestSuggestionRun,
+        queryKey: ["suggestions", "latest", direction],
+        queryFn: () => api.getLatestSuggestionRun(direction),
         retry: (failureCount, error) => {
             if (error instanceof ApiError && error.status === 404) return false;
             return failureCount < 2;
@@ -47,16 +49,16 @@ export default function SuggestionsPage() {
     });
 
     const performanceQuery = useQuery({
-        queryKey: ["suggestions", "performance"],
-        queryFn: api.getSuggestionPerformance,
+        queryKey: ["suggestions", "performance", direction],
+        queryFn: () => api.getSuggestionPerformance(direction),
         enabled: activeTab === "performance",
     });
-
     const historyQuery = useQuery({
-        queryKey: ["suggestions", "history"],
-        queryFn: () => api.listSuggestionRuns(20, 0),
+        queryKey: ["suggestions", "history", direction],
+        queryFn: () => api.listSuggestionRuns(20, 0, direction),
         enabled: activeTab === "history",
     });
+
 
     const feedbackMutation = useMutation({
         mutationFn: ({
@@ -72,8 +74,8 @@ export default function SuggestionsPage() {
             // Synchronous refetch so the user_action stamp lands BEFORE the
             // toast (PROJECT_STATE §14.4 — refetchQueries, not invalidateQueries).
             await Promise.all([
-                queryClient.refetchQueries({ queryKey: ["suggestions", "latest"] }),
-                queryClient.refetchQueries({ queryKey: ["suggestions", "performance"] }),
+                queryClient.refetchQueries({ queryKey: ["suggestions", "latest", direction] }),
+                queryClient.refetchQueries({ queryKey: ["suggestions", "performance", direction] }),
             ]);
             const verb =
                 vars.action === "acted"
@@ -123,8 +125,10 @@ export default function SuggestionsPage() {
                         </h1>
                         <p className="mt-1 text-sm text-muted-foreground">
                             {latestQuery.data
-                                ? `Latest run: ${latestQuery.data.run_date_ist} · Universe: ${latestQuery.data.universe_size} · Eligible: ${latestQuery.data.candidates_post_gates}`
-                                : "AI-ranked NIFTY 100 candidates with full dossiers."}
+                                ? `Latest ${direction} run: ${latestQuery.data.run_date_ist} · Universe: ${latestQuery.data.universe_size} · Eligible: ${latestQuery.data.candidates_post_gates}`
+                                : direction === "buy"
+                                    ? "AI-ranked NIFTY 100 buy-side candidates with full dossiers."
+                                    : "AI-ranked sell-side trim / book-profit candidates from current holdings."}
                         </p>
                     </div>
                     {latestQuery.data && (
@@ -192,6 +196,30 @@ export default function SuggestionsPage() {
                         {/* Page intro (collapsible help) */}
                         <PageIntro data={latestQuery.data.page_intro} />
 
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-card px-4 py-3">
+                            <div>
+                                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                    Direction
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    {direction === "buy"
+                                        ? "Accumulation ideas outside your current holdings."
+                                        : "Trim / book-profit ideas from your current holdings."}
+                                </p>
+                            </div>
+                            <Tabs
+                                value={direction}
+                                onValueChange={(value) =>
+                                    setDirection(value as SuggestionDirection)
+                                }
+                            >
+                                <TabsList>
+                                    <TabsTrigger value="buy">Buy</TabsTrigger>
+                                    <TabsTrigger value="sell">Sell</TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                        </div>
+
                         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                             <TabsList>
                                 <TabsTrigger value="latest">Latest Run</TabsTrigger>
@@ -206,7 +234,9 @@ export default function SuggestionsPage() {
                                         return (
                                             <Card>
                                                 <CardContent className="py-8 text-center text-sm text-muted-foreground">
-                                                    No eligible candidates this week.
+                                                    {direction === "buy"
+                                                        ? "No eligible buy-side candidates this week."
+                                                        : "No eligible sell-side candidates this week."}
                                                 </CardContent>
                                             </Card>
                                         );

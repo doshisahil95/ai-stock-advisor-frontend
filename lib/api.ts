@@ -434,7 +434,9 @@ export interface SuggestionDossier {
     bear_case: string[];
     key_risks: string[];
     valuation_verdict: string;
-    portfolio_fit: string;
+    portfolio_fit?: string;
+    tax_consideration?: string;
+    concentration_note?: string;
     narrative_unavailable?: boolean;
     narrative_unavailable_reason?: string;
     model?: string;
@@ -442,23 +444,26 @@ export interface SuggestionDossier {
     plain_english_summary?: string;
 }
 
+export type SuggestionDirection = "buy" | "sell";
+
 export interface SuggestionRunSummary {
     _id: string;
     run_date: string;
     run_date_ist: string;
     run_type: string;
     status: string;
+    direction?: SuggestionDirection;
     universe_size: number;
     candidates_post_gates: number;
     top_k: number;
 }
-
 export interface SuggestionRun {
     _id: string;
     run_date: string;
     run_date_ist: string;
     run_type: string;
     status: string;
+    direction?: SuggestionDirection;
     universe_size: number;
     excluded_held: number;
     excluded_rejected: number;
@@ -522,7 +527,16 @@ export interface SignalMeta {
     normalized_score: number;
     weight: number;
     available: boolean;
-    group: "quality" | "valuation" | "momentum" | "news" | "";
+    group:
+    | "quality"
+    | "valuation"
+    | "momentum"
+    | "news"
+    | "booking_opportunity"
+    | "valuation_stretch"
+    | "risk"
+    | "tax_concentration"
+    | "";
 }
 
 export type GroupBand = "strong" | "ok" | "weak" | "unknown";
@@ -537,10 +551,14 @@ export interface GroupMetaEntry {
 }
 
 export interface GroupMeta {
-    quality: GroupMetaEntry;
-    valuation: GroupMetaEntry;
-    momentum: GroupMetaEntry;
-    news: GroupMetaEntry;
+    quality?: GroupMetaEntry;
+    valuation?: GroupMetaEntry;
+    momentum?: GroupMetaEntry;
+    news?: GroupMetaEntry;
+    booking_opportunity?: GroupMetaEntry;
+    valuation_stretch?: GroupMetaEntry;
+    risk?: GroupMetaEntry;
+    tax_concentration?: GroupMetaEntry;
 }
 
 export interface GateMeta {
@@ -701,17 +719,21 @@ export const api = {
 
     // ── Suggestions ────────────────────────────────────────────────────────────
 
-    getLatestSuggestionRun: (): Promise<SuggestionRun> =>
-        apiFetch("/suggestions/latest"),
-
-    listSuggestionRuns: (limit = 20, skip = 0): Promise<SuggestionRunsList> =>
-        apiFetch(`/suggestions/runs?limit=${limit}&skip=${skip}`),
-
+    getLatestSuggestionRun: (
+        direction: SuggestionDirection = "buy"
+    ): Promise<SuggestionRun> => apiFetch(`/suggestions/latest?direction=${direction}`),
+    listSuggestionRuns: (
+        limit = 20,
+        skip = 0,
+        direction: SuggestionDirection = "buy"
+    ): Promise<SuggestionRunsList> =>
+        apiFetch(`/suggestions/runs?limit=${limit}&skip=${skip}&direction=${direction}`),
     getSuggestionRun: (runId: string): Promise<SuggestionRun> =>
         apiFetch(`/suggestions/runs/${runId}`),
-
-    getSuggestionPerformance: (): Promise<SuggestionPerformance> =>
-        apiFetch("/suggestions/performance"),
+    getSuggestionPerformance: (
+        direction: SuggestionDirection = "buy"
+    ): Promise<SuggestionPerformance> =>
+        apiFetch(`/suggestions/performance?direction=${direction}`),
 
     submitFeedback: (
         isin: string,
