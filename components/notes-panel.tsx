@@ -40,10 +40,10 @@ export function NotesPanel({ holding }: NotesPanelProps) {
             api.updateHolding(holding.isin, payload),
         onSuccess: () => {
             toast.success("Notes saved");
-            queryClient.invalidateQueries({ queryKey: ["holding", holding.isin] });
+            queryClient.refetchQueries({ queryKey: ["holding", holding.isin] });
             // Also invalidate dashboard queries so any tag/note shown on the main
             // dashboard stays in sync.
-            queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+            queryClient.refetchQueries({ queryKey: ["dashboard"] });
             setEditing(false);
         },
         onError: (err: Error) => {

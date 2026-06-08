@@ -17,9 +17,9 @@ export function RefreshButton() {
     const handleRefresh = async () => {
         setRefreshing(true);
         await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-            queryClient.invalidateQueries({ queryKey: ["reconciliation"] }),
-            queryClient.invalidateQueries({ queryKey: ["cost-basis"] }),
+            queryClient.refetchQueries({ queryKey: ["dashboard"] }),
+            queryClient.refetchQueries({ queryKey: ["reconciliation"] }),
+            queryClient.refetchQueries({ queryKey: ["cost-basis"] }),
         ]);
         setTimeout(() => setRefreshing(false), 600);
     };
