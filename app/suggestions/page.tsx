@@ -11,6 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SuggestionCard } from "@/components/suggestion-card";
 import { PageIntro } from "@/components/page-intro";
+import { ChatPanel } from "@/components/chat-panel";
+import { StockResearchPanel } from "@/components/stock-research-panel";
 import {
     api,
     FeedbackAction,
@@ -296,6 +298,19 @@ export default function SuggestionsPage() {
                         </Tabs>
                     </div>
                 )}
+
+                <div className="mt-6 space-y-4">
+                    <ChatPanel
+                        title="Ask about these suggestions"
+                        description="Chat about this week's buy/sell candidates. Read-only on your portfolio; advisory only."
+                        placeholder="e.g. Which buy candidate has the best risk/reward, and why?"
+                        historyParams={{ scope: "suggestions" }}
+                        send={(query, sentiment) =>
+                            api.chatSuggestions({ query, sentiment_overlay: sentiment })
+                        }
+                    />
+                    <StockResearchPanel />
+                </div>
             </div>
         </main>
     );

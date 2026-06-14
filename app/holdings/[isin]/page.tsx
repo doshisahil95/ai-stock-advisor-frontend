@@ -8,6 +8,7 @@ import { HoldingStats } from "@/components/holding-stats";
 import { NotesPanel } from "@/components/notes-panel";
 import { PriceChart } from "@/components/price-chart";
 import { TransactionsList } from "@/components/transactions-list";
+import { ChatPanel } from "@/components/chat-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,16 @@ export default function HoldingDetailPage() {
                             <TransactionsList isin={isin} />
                             <NotesPanel holding={holdingQuery.data} />
                         </div>
+
+                        <ChatPanel
+                            title={`Ask about ${holdingQuery.data.symbol}`}
+                            description="Chat about this holding — position, tax window, valuation, and news. Advisory only."
+                            placeholder={`e.g. Given my cost basis and the tax window, what should I weigh on ${holdingQuery.data.symbol}?`}
+                            historyParams={{ scope: "holding", isin }}
+                            send={(query, sentiment) =>
+                                api.chatHolding(isin, { query, sentiment_overlay: sentiment })
+                            }
+                        />
                     </div>
                 )}
             </div>

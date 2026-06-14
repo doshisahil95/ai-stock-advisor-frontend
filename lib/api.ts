@@ -614,6 +614,40 @@ export interface PerformanceBucket {
 
 // ── Endpoint wrappers ────────────────────────────────────────────────────────
 
+//  Instruments search (used by the not-held research entry point)
+export interface InstrumentSearchResult {
+    exchange: string;
+    symbol: string;
+    isin: string | null;
+    name?: string | null;
+}
+
+//  Chat (#27  F1/F3  ad-hoc conversations)
+export type ChatScope = "suggestions" | "holding";
+export type SentimentOverlay = "cautious" | "neutral" | "aggressive";
+
+export interface ChatConversation {
+    id: string;
+    query: string;
+    response: string;
+    intent: string;
+    scope: ChatScope | null;
+    sentiment_overlay: SentimentOverlay | null;
+    related_entities_isins: string[];
+    related_holding_id: string | null;
+    model_used: string;
+    input_tokens: number;
+    output_tokens: number;
+    cost_usd: string;
+    duration_ms: number;
+    created_at: string;
+}
+
+export interface ChatRequestPayload {
+    query: string;
+    sentiment_overlay?: SentimentOverlay;
+}
+
 export const api = {
     getSummary: (): Promise<PortfolioSummary> => apiFetch("/portfolio/summary"),
     getHoldings: (): Promise<Holding[]> => apiFetch("/portfolio/holdings"),
@@ -756,4 +790,38 @@ export const api = {
     /** F10 — feedback audit history for one ISIN, newest first. */
     getFeedbackAuditForIsin: (isin: string): Promise<MonitoredStocksAuditEntry[]> =>
         apiFetch(`/suggestions/${isin}/audit`),
+
+    //  Instruments search (symbol prefix -> {exchange, symbol, isin, name})
+    searchInstruments: (
+        symbolPrefix: string,
+        limit = 20
+    ): Promise<InstrumentSearchResult[]> =>
+        apiFetch(`/instruments/search/${encodeURIComponent(symbolPrefix)}?limit=${limit}`),
+
+    //  Chat (#27  F1/F3)
+    chatSuggestions: (payload: ChatRequestPayload): Promise<ChatConversation> =>
+        apiFetch("/chat/suggestions", {
+            method: "POST",
+            body: JSON.stringify(payload),
+        }),
+    chatHolding: (
+        isin: string,
+        payload: ChatRequestPayload
+    ): Promise<ChatConversation> =>
+        apiFetch(`/chat/holdings/${isin}`, {
+            method: "POST",
+            body: JSON.stringify(payload),
+        }),
+    getChatHistory: (params?: {
+        scope?: ChatScope;
+        isin?: string;
+        limit?: number;
+    }): Promise<ChatConversation[]> => {
+        const qs = new URLSearchParams();
+        if (params?.scope) qs.set("scope", params.scope);
+        if (params?.isin) qs.set("isin", params.isin);
+        if (params?.limit) qs.set("limit", String(params.limit));
+        const query = qs.toString();
+        return apiFetch(`/chat/history${query ? `?${query}` : ""}`);
+    },
 };
