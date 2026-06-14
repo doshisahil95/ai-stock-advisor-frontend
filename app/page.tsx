@@ -1,11 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, History, Layers } from "lucide-react";
+import { AlertCircle, History, Layers, Sparkles, Tag } from "lucide-react";
 import Link from "next/link";
 import { HoldingsTable } from "@/components/holdings-table";
 import { ReconciliationBadge } from "@/components/reconciliation-badge";
 import { RefreshButton } from "@/components/refresh-button";
+import { RiskSummaryCard } from "@/components/risk-summary-card";
 import { SectorBreakdown } from "@/components/sector-breakdown";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TopMovers } from "@/components/top-movers";
@@ -14,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { dateTime } from "@/lib/format";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Sparkles } from "lucide-react";  // add to existing imports from lucide-react
 
 export default function DashboardPage() {
   const summaryQuery = useQuery({
@@ -25,6 +25,11 @@ export default function DashboardPage() {
   const holdingsQuery = useQuery({
     queryKey: ["dashboard", "holdings"],
     queryFn: api.getHoldings,
+  });
+
+  const riskQuery = useQuery({
+    queryKey: ["dashboard", "risk"],
+    queryFn: api.getRiskSummary,
   });
 
   const isLoading = summaryQuery.isLoading || holdingsQuery.isLoading;
@@ -42,7 +47,7 @@ export default function DashboardPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               {summaryQuery.data
                 ? `Last updated ${dateTime(summaryQuery.data.as_of)}`
-                : "Loading…"}
+                : "Loading"}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -50,6 +55,12 @@ export default function DashboardPage() {
               <Link href="/suggestions">
                 <Sparkles className="h-3.5 w-3.5" />
                 Suggestions
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
+              <Link href="/tags">
+                <Tag className="h-3.5 w-3.5" />
+                Tags
               </Link>
             </Button>
             <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
@@ -98,6 +109,12 @@ export default function DashboardPage() {
                 losers={summaryQuery.data.top_losers_by_pct}
               />
             </div>
+
+            <RiskSummaryCard
+              data={riskQuery.data}
+              isLoading={riskQuery.isLoading}
+              error={riskQuery.error}
+            />
 
             <HoldingsTable holdings={holdingsQuery.data} />
           </div>

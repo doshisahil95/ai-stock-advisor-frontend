@@ -648,6 +648,69 @@ export interface ChatRequestPayload {
     sentiment_overlay?: SentimentOverlay;
 }
 
+// ── Portfolio risk & tags response types (F12 + F15, #28) ──────────────────
+
+/** GET /portfolio/risk-summary — one concentration row per holding (F12). */
+export interface RiskConcentrationHolding {
+    isin: string;
+    symbol: string;
+    sector: string;
+    current_value: string;
+    pct_of_portfolio: number;
+}
+
+/** GET /portfolio/risk-summary — one concentration row per sector (F12). */
+export interface RiskConcentrationSector {
+    sector: string;
+    stock_count: number;
+    current_value: string;
+    pct_of_portfolio: number;
+}
+
+export type RiskAlertSeverity = "warn" | "high" | "info";
+
+export interface RiskAlert {
+    type:
+    | "single_holding_concentration"
+    | "sector_concentration"
+    | "stale_price";
+    severity: RiskAlertSeverity;
+    message: string;
+    // single_holding_concentration / sector_concentration
+    pct_of_portfolio?: number;
+    threshold?: number;
+    isin?: string;
+    symbol?: string;
+    sector?: string;
+    // stale_price
+    count?: number;
+    isins?: string[];
+    symbols?: string[];
+}
+
+export interface RiskSummary {
+    as_of: string;
+    total_current_value: string;
+    concentration_by_holding: RiskConcentrationHolding[];
+    concentration_by_sector: RiskConcentrationSector[];
+    alerts: RiskAlert[];
+}
+
+/** GET /portfolio/by-tag — tag-scoped totals (F15). */
+export interface TagTotals {
+    count: number;
+    invested: string;
+    current_value: string;
+    unrealized_pnl: string;
+    unrealized_pnl_pct: number;
+}
+
+export interface HoldingsByTag {
+    tag: string;
+    holdings: Holding[];
+    totals: TagTotals;
+}
+
 export const api = {
     getSummary: (): Promise<PortfolioSummary> => apiFetch("/portfolio/summary"),
     getHoldings: (): Promise<Holding[]> => apiFetch("/portfolio/holdings"),
@@ -824,4 +887,10 @@ export const api = {
         const query = qs.toString();
         return apiFetch(`/chat/history${query ? `?${query}` : ""}`);
     },
+
+    //  Portfolio risk & tags (F12 + F15, #28)
+    getRiskSummary: (): Promise<RiskSummary> =>
+        apiFetch("/portfolio/risk-summary"),
+    getHoldingsByTag: (tag: string): Promise<HoldingsByTag> =>
+        apiFetch(`/portfolio/by-tag?tag=${encodeURIComponent(tag)}`),
 };
