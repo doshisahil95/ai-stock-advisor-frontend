@@ -353,12 +353,17 @@ export interface TransactionAuditEntry {
  * the field name is `performed_at`, not `changed_at`, to match the
  * locked schema in PROJECT_STATE §7.
  */
+export type WatchlistAuditAction =
+    | "watchlist_add"
+    | "watchlist_update"
+    | "watchlist_remove";
+
 export interface MonitoredStocksAuditEntry {
     _id: string;
     isin: string;
-    action: FeedbackAction;
+    action: FeedbackAction | WatchlistAuditAction;
     previous_status: string | null;
-    new_status: "tracking" | "passed" | "rejected" | "watchlist";
+    new_status: "tracking" | "passed" | "rejected" | "watchlist" | "removed";
     note: string;
     performed_at: string;
     _schema_version?: number;
@@ -711,6 +716,57 @@ export interface HoldingsByTag {
     totals: TagTotals;
 }
 
+//  Watchlist (F13, #29)
+
+/** GET /watchlist  one monitored_stocks row with status=="watchlist",
+ * enriched with the latest price. Numeric fields come back as strings
+ * (Decimal precision); parse with parseFloat() in the formatters. */
+export interface WatchlistEntry {
+    _id: string;
+    isin: string;
+    symbol: string;
+    name?: string | null;
+    exchange?: string | null;
+    sector?: string | null;
+    industry?: string | null;
+    status: "watchlist";
+    added_by?: string;
+    added_reason?: string;
+    added_at?: string;
+    created_at?: string;
+    updated_at?: string;
+    last_user_interest_at?: string | null;
+    // F13 user overlay
+    target_buy_price?: string | null;
+    alert_above?: string | null;
+    alert_below?: string | null;
+    alert_on?: string[] | null;
+    tags?: string[] | null;
+    user_notes?: string | null;
+    thesis?: string | null;
+    conviction?: number | null;
+    // Price enrichment (added by the router via bulk_get_latest_prices)
+    current_price: string | null;
+    price_as_of: string | null;
+}
+
+/** PUT /watchlist/{isin}  create or update (idempotent). All fields optional;
+ * a bare {} just (re)asserts membership. `note` is the audit note, not
+ * persisted onto the monitored_stocks doc. */
+export interface WatchlistUpsertPayload {
+    target_buy_price?: string;
+    alert_above?: string;
+    alert_below?: string;
+    alert_on?: string[];
+    tags?: string[];
+    user_notes?: string;
+    thesis?: string;
+    conviction?: number;
+    symbol?: string;
+    name?: string;
+    note?: string;
+}
+
 export const api = {
     getSummary: (): Promise<PortfolioSummary> => apiFetch("/portfolio/summary"),
     getHoldings: (): Promise<Holding[]> => apiFetch("/portfolio/holdings"),
@@ -893,4 +949,21 @@ export const api = {
         apiFetch("/portfolio/risk-summary"),
     getHoldingsByTag: (tag: string): Promise<HoldingsByTag> =>
         apiFetch(`/portfolio/by-tag?tag=${encodeURIComponent(tag)}`),
+
+    //  Watchlist (F13, #29)
+    getWatchlist: (): Promise<WatchlistEntry[]> => apiFetch("/watchlist"),
+    getWatchlistEntry: (isin: string): Promise<WatchlistEntry> =>
+        apiFetch(`/watchlist/${isin}`),
+    upsertWatchlist: (
+        isin: string,
+        payload: WatchlistUpsertPayload
+    ): Promise<WatchlistEntry> =>
+        apiFetch(`/watchlist/${isin}`, {
+            method: "PUT",
+            body: JSON.stringify(payload),
+        }),
+    deleteWatchlist: (
+        isin: string
+    ): Promise<{ isin: string; deleted: boolean }> =>
+        apiFetch(`/watchlist/${isin}`, { method: "DELETE" }),
 };

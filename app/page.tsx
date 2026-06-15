@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, History, Layers, Sparkles, Tag } from "lucide-react";
+import { AlertCircle, Eye, History, Layers, Sparkles, Tag } from "lucide-react";
 import Link from "next/link";
 import { HoldingsTable } from "@/components/holdings-table";
 import { ReconciliationBadge } from "@/components/reconciliation-badge";
@@ -55,6 +55,12 @@ export default function DashboardPage() {
               <Link href="/suggestions">
                 <Sparkles className="h-3.5 w-3.5" />
                 Suggestions
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
+              <Link href="/watchlist">
+                <Eye className="h-3.5 w-3.5" />
+                Watchlist
               </Link>
             </Button>
             <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
