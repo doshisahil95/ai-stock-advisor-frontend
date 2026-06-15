@@ -288,8 +288,16 @@ One subsection per route file under `app/`.  Each lists: TanStack Query keys own
 - Mutations on this page: none.  The header `RefreshButton` calls `queryClient.refetchQueries` against the dashboard keys; the `ThemeToggle` and `ReconciliationBadge` are presentational / read-only.
 - Inbound `refetchQueries` from other routes: the transactions delete mutation in `app/transactions/page.tsx` fans out to `["dashboard"]` (prefix-matches both summary + holdings keys); the reconciliation snapshot mutation in `app/reconciliation/page.tsx` does NOT touch dashboard keys (intentional — reconciliation is its own subtree).
 - Endpoints hit per render: `GET /portfolio/summary`, `GET /portfolio/holdings`.
-- Key shadcn primitives: `Button`, `Skeleton`.  Custom composites: `HoldingsTable`, `SectorBreakdown`, `TopMovers`, `TotalsRow`, `ReconciliationBadge`, `RefreshButton`, `ThemeToggle`.
+- Key shadcn primitives: `Button`, `Skeleton`.  Custom composites: `HoldingsTable`, `SectorBreakdown`, `TopMovers`, `TotalsRow`, `ReconciliationBadge`, `RefreshButton`, `ThemeToggle`, `RiskSummaryCard` (#28). Header nav links: Suggestions, Tags (#28), Watchlist (#29, Eye icon → `/watchlist`).
 - Dark mode: inherits from `<ThemeProvider attribute="class" defaultTheme="system" enableSystem>` in `app/layout.tsx`; the manual `ThemeToggle` lives in the header on this page.  Error banner uses `dark:border-red-900 dark:bg-red-950/50 dark:text-red-300` style variants.
+
+### `app/watchlist/page.tsx` — Watchlist (`/watchlist`, F13 / #29)
+
+- TanStack Query keys owned: `["watchlist"]` (calls `api.getWatchlist` → `GET /watchlist`, price-enriched, newest `last_user_interest_at` first); `["watchlist", "search", prefix]` (calls `api.searchInstruments` → `GET /instruments/search/{prefix}`, `enabled` only when prefix ≥ 2 chars and nothing selected).
+- Mutations owned: the AddToWatchlist control's upsert (`api.upsertWatchlist(isin, {symbol, name, target_buy_price?, note})` → `PUT /watchlist/{isin}`) and the per-row RemoveButton (`api.deleteWatchlist(isin)` → `DELETE /watchlist/{isin}`). Both `await onAdded()/onRemoved()` which `refetchQueries({ queryKey: ["watchlist"] })` (synchronous, per Section 9) before the sonner success toast; errors surface via `ApiError.detail`.
+- Endpoints hit per render: `GET /watchlist`; on add: `GET /instruments/search/{prefix}` then `PUT /watchlist/{isin}`; on remove: `DELETE /watchlist/{isin}`.
+- Key shadcn primitives: `Card`, `Table`, `Input`, `Label`, `Button`, `Skeleton`. Reuses the `/tags` page shell (back-link + header). The target-buy cell highlights emerald when current price ≤ target.
+- Dark mode: inherits root theme; target-buy at/below uses `text-emerald-600 dark:text-emerald-500`.
 
 ### `app/holdings/[isin]/page.tsx` — Single-holding drill-down
 
