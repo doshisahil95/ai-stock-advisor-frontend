@@ -767,6 +767,45 @@ export interface WatchlistUpsertPayload {
     note?: string;
 }
 
+// ─── Tax / capital gains (F11, #39) ────────────────────────────────────────
+/** GET /tax/capital-gains — one realized buy-lot→sell disposal row within an FY.
+ *  Numeric fields come back as strings (Decimal precision); parse in formatters.
+ *  Dates are IST calendar dates as YYYY-MM-DD. */
+export interface CapitalGainsLot {
+    isin: string;
+    symbol: string;
+    name: string;
+    buy_date: string;
+    sell_date: string;
+    quantity: string;
+    buy_cost: string;
+    sell_proceeds: string;
+    gain: string;
+    holding_period_days: number;
+    gain_type: "STCG" | "LTCG";
+}
+
+export interface CapitalGainsBucket {
+    realized_gain: string;
+    proceeds: string;
+    cost: string;
+    lot_count: number;
+}
+
+export interface CapitalGainsSummary {
+    stcg: CapitalGainsBucket;
+    ltcg: CapitalGainsBucket;
+    total: CapitalGainsBucket;
+}
+
+export interface CapitalGainsResponse {
+    fy: string;        // "2025-26"
+    fy_start: string;  // "2025-04-01"
+    fy_end: string;    // "2026-03-31"
+    summary: CapitalGainsSummary;
+    lots: CapitalGainsLot[];
+}
+
 export const api = {
     getSummary: (): Promise<PortfolioSummary> => apiFetch("/portfolio/summary"),
     getHoldings: (): Promise<Holding[]> => apiFetch("/portfolio/holdings"),
@@ -966,4 +1005,8 @@ export const api = {
         isin: string
     ): Promise<{ isin: string; deleted: boolean }> =>
         apiFetch(`/watchlist/${isin}`, { method: "DELETE" }),
+
+    //  Tax / capital gains (F11, #39)
+    getCapitalGains: (fy?: string): Promise<CapitalGainsResponse> =>
+        apiFetch(`/tax/capital-gains${fy ? `?fy=${encodeURIComponent(fy)}` : ""}`),
 };
