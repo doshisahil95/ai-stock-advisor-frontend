@@ -139,8 +139,8 @@ export default function DashboardPage() {
 function DashboardSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[0, 1, 2, 3].map((i) => (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {[0, 1, 2].map((i) => (
           <Skeleton key={i} className="h-28" />
         ))}
       </div>

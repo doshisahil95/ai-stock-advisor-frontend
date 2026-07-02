@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownUp, IndianRupee, TrendingUp, Wallet } from "lucide-react";
+import { ArrowDownUp, IndianRupee, Wallet } from "lucide-react";
 import {
     Tooltip,
     TooltipContent,
@@ -17,7 +17,7 @@ interface TotalsRowProps {
 
 export function TotalsRow({ totals }: TotalsRowProps) {
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <StatCard
                 title={
                     <span className="inline-flex items-center gap-1.5">
@@ -120,29 +120,6 @@ export function TotalsRow({ totals }: TotalsRowProps) {
                 subValueClassName={colorForChange(totals.day_gain)}
             />
 
-            <StatCard
-                title={
-                    <span className="inline-flex items-center gap-1.5">
-                        Realized P&amp;L
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Info className="h-3 w-3 cursor-help text-muted-foreground/60 hover:text-muted-foreground" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                                <p className="text-xs leading-relaxed">
-                                    Net profit/loss from stocks you&apos;ve fully sold (no longer in your holdings).
-                                    Computed via FIFO across all SELL transactions. Doesn&apos;t include unrealized
-                                    gains on positions you still hold.
-                                </p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </span>
-                }
-                value={inrSigned(totals.realized_pnl_lifetime)}
-                icon={TrendingUp}
-                subValue={`${totals.fully_exited_lifetime} closed positions`}
-                subValueClassName="text-muted-foreground"
-            />
         </div>
     );
 }
