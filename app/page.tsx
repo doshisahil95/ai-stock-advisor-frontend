@@ -1,8 +1,18 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, Eye, History, Layers, Receipt, Sparkles, Tag } from "lucide-react";
+import {
+  AlertCircle,
+  ChevronDown,
+  Eye,
+  History,
+  Layers,
+  Receipt,
+  Sparkles,
+  Tag,
+} from "lucide-react";
 import Link from "next/link";
+
 import { HoldingsTable } from "@/components/holdings-table";
 import { ReconciliationBadge } from "@/components/reconciliation-badge";
 import { RefreshButton } from "@/components/refresh-button";
@@ -12,6 +22,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TopMovers } from "@/components/top-movers";
 import { TotalsRow } from "@/components/totals-row";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { CollapsibleSection } from "@/components/collapsible-section";
 import { api } from "@/lib/api";
 import { dateTime } from "@/lib/format";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -21,12 +38,10 @@ export default function DashboardPage() {
     queryKey: ["dashboard", "summary"],
     queryFn: api.getSummary,
   });
-
   const holdingsQuery = useQuery({
     queryKey: ["dashboard", "holdings"],
     queryFn: api.getHoldings,
   });
-
   const riskQuery = useQuery({
     queryKey: ["dashboard", "risk"],
     queryFn: api.getRiskSummary,
@@ -51,42 +66,66 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
-              <Link href="/suggestions">
-                <Sparkles className="h-3.5 w-3.5" />
-                Suggestions
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
-              <Link href="/watchlist">
-                <Eye className="h-3.5 w-3.5" />
-                Watchlist
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
-              <Link href="/tags">
-                <Tag className="h-3.5 w-3.5" />
-                Tags
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
-              <Link href="/transactions">
-                <Layers className="h-3.5 w-3.5" />
-                Transactions
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
-              <Link href="/transactions/audit">
-                <History className="h-3.5 w-3.5" />
-                Audit
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
-              <Link href="/tax">
-                <Receipt className="h-3.5 w-3.5" />
-                Tax
-              </Link>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Research
+                  <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-40">
+                <DropdownMenuItem asChild>
+                  <Link href="/suggestions">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Suggestions
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/watchlist">
+                    <Eye className="h-3.5 w-3.5" />
+                    Watchlist
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/tags">
+                    <Tag className="h-3.5 w-3.5" />
+                    Tags
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                  <Layers className="h-3.5 w-3.5" />
+                  Manage
+                  <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-40">
+                <DropdownMenuItem asChild>
+                  <Link href="/transactions">
+                    <Layers className="h-3.5 w-3.5" />
+                    Transactions
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/transactions/audit">
+                    <History className="h-3.5 w-3.5" />
+                    Audit
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/tax">
+                    <Receipt className="h-3.5 w-3.5" />
+                    Tax
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <ReconciliationBadge />
             <RefreshButton />
             <ThemeToggle />
@@ -97,9 +136,7 @@ export default function DashboardPage() {
         {error && (
           <div className="mb-6 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
             <AlertCircle className="h-4 w-4" />
-            <span>
-              Couldn&apos;t load portfolio data: {error.message}
-            </span>
+            <span>Couldn&apos;t load portfolio data: {error.message}</span>
           </div>
         )}
 
@@ -109,26 +146,34 @@ export default function DashboardPage() {
         {/* Loaded content */}
         {summaryQuery.data && holdingsQuery.data && (
           <div className="space-y-6">
-            <TotalsRow totals={summaryQuery.data.totals} />
+            <CollapsibleSection title="Portfolio totals">
+              <TotalsRow totals={summaryQuery.data.totals} />
+            </CollapsibleSection>
 
-            <div className="grid gap-6 lg:grid-cols-2">
-              <SectorBreakdown
-                sectors={summaryQuery.data.sector_breakdown}
-                holdings={holdingsQuery.data}
+            <CollapsibleSection title="Allocation & movers">
+              <div className="grid gap-6 lg:grid-cols-2">
+                <SectorBreakdown
+                  sectors={summaryQuery.data.sector_breakdown}
+                  holdings={holdingsQuery.data}
+                />
+                <TopMovers
+                  gainers={summaryQuery.data.top_gainers_by_pct}
+                  losers={summaryQuery.data.top_losers_by_pct}
+                />
+              </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Risk">
+              <RiskSummaryCard
+                data={riskQuery.data}
+                isLoading={riskQuery.isLoading}
+                error={riskQuery.error}
               />
-              <TopMovers
-                gainers={summaryQuery.data.top_gainers_by_pct}
-                losers={summaryQuery.data.top_losers_by_pct}
-              />
-            </div>
+            </CollapsibleSection>
 
-            <RiskSummaryCard
-              data={riskQuery.data}
-              isLoading={riskQuery.isLoading}
-              error={riskQuery.error}
-            />
-
-            <HoldingsTable holdings={holdingsQuery.data} />
+            <CollapsibleSection title="Holdings">
+              <HoldingsTable holdings={holdingsQuery.data} />
+            </CollapsibleSection>
           </div>
         )}
       </div>

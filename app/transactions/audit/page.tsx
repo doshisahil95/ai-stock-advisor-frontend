@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
+
 import {
     Card,
     CardContent,
@@ -26,12 +27,22 @@ export default function AuditTrailPage() {
     return (
         <main className="min-h-screen bg-background">
             <div className="mx-auto max-w-5xl px-4 py-6 md:px-6 lg:px-8">
-                <div className="mb-6">
-                    <Link href="/transactions" className="inline-flex">
+                <div className="mb-6 flex flex-wrap items-center gap-1">
+                    <Link href="/" className="inline-flex">
                         <Button
                             variant="ghost"
                             size="sm"
                             className="-ml-3 h-8 gap-2 text-muted-foreground hover:text-foreground"
+                        >
+                            <ArrowLeft className="h-3.5 w-3.5" />
+                            Back to portfolio
+                        </Button>
+                    </Link>
+                    <Link href="/transactions" className="inline-flex">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 gap-2 text-muted-foreground hover:text-foreground"
                         >
                             <ArrowLeft className="h-3.5 w-3.5" />
                             Back to transactions
@@ -42,18 +53,18 @@ export default function AuditTrailPage() {
                 <header className="mb-6">
                     <h1 className="text-2xl font-bold tracking-tight">Audit Trail</h1>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Append-only record of every transaction edit and delete. Read-only and
-                        immutable. Use this to explain retroactive changes to realized P&amp;L
-                        (especially around tax season).
+                        Append-only record of every transaction edit and delete. Read-only
+                        and immutable. Use this to explain retroactive changes to realized
+                        P&amp;L (especially around tax season).
                     </p>
                 </header>
 
                 <Card className="mb-4 border-blue-200 bg-blue-50/40 dark:border-blue-900 dark:bg-blue-950/20">
                     <CardContent className="py-4 text-xs text-muted-foreground">
-                        This log is automatically populated whenever a transaction is edited or
-                        deleted via the Transactions page. Each entry includes the field-level
-                        change, the user-supplied reason, and the timestamp. This trail cannot be
-                        modified or deleted from the API.
+                        This log is automatically populated whenever a transaction is edited
+                        or deleted via the Transactions page. Each entry includes the
+                        field-level change, the user-supplied reason, and the timestamp.
+                        This trail cannot be modified or deleted from the API.
                     </CardContent>
                 </Card>
 
@@ -64,20 +75,23 @@ export default function AuditTrailPage() {
                         ))}
                     </div>
                 )}
+
                 {query.error && (
                     <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
                         <AlertCircle className="h-4 w-4" />
                         <span>Couldn&apos;t load audit log: {query.error.message}</span>
                     </div>
                 )}
+
                 {query.data && query.data.length === 0 && (
                     <Card>
                         <CardContent className="py-12 text-center text-sm text-muted-foreground">
-                            No audit entries yet. The log starts populating from your first transaction
-                            edit or delete.
+                            No audit entries yet. The log starts populating from your first
+                            transaction edit or delete.
                         </CardContent>
                     </Card>
                 )}
+
                 {query.data && query.data.length > 0 && (
                     <div className="space-y-3">
                         {query.data.map((entry) => (
@@ -97,8 +111,14 @@ function AuditCard({ entry }: { entry: TransactionAuditEntry }) {
             ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-400"
             : "border-red-300 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-400";
 
-    const before = entry.before as Record<string, string | number | null | undefined>;
-    const after = entry.after as Record<string, string | number | null | undefined> | null;
+    const before = entry.before as Record<
+        string,
+        string | number | null | undefined
+    >;
+    const after = entry.after as Record<
+        string,
+        string | number | null | undefined
+    > | null;
     const symbol = (before.symbol as string) ?? "?";
     const type = (before.type as string) ?? "?";
 
@@ -155,7 +175,8 @@ function AuditCard({ entry }: { entry: TransactionAuditEntry }) {
                     >
                         {entry.isin}
                     </Link>{" "}
-                    · ID: <span className="font-mono">{entry.transaction_id.slice(-8)}</span>
+                    · ID:{" "}
+                    <span className="font-mono">{entry.transaction_id.slice(-8)}</span>
                 </p>
             </CardContent>
         </Card>
@@ -207,6 +228,7 @@ function FieldDiff({
         }
         return String(v);
     };
+
     const labelOf: Record<string, string> = {
         quantity: "Quantity",
         price: "Price",
@@ -214,6 +236,7 @@ function FieldDiff({
         total_fees: "Fees",
         notes: "Notes",
     };
+
     return (
         <div className="space-y-1">
             {fields.map((k) => (
