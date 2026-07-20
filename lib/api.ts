@@ -100,6 +100,8 @@ export interface PortfolioTotals {
     day_gain: string;
     day_gain_pct: number;
     realized_pnl_lifetime: string;
+    total_dividends_lifetime: string;
+    total_realized_with_dividends: string;
     total_holdings: number;
     fully_exited_lifetime: number;
     broker_invested?: string | null;

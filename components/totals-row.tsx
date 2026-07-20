@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownUp, IndianRupee, Wallet } from "lucide-react";
+import { ArrowDownUp, IndianRupee, TrendingUp, Wallet } from "lucide-react";
 import {
     Tooltip,
     TooltipContent,
@@ -17,7 +17,7 @@ interface TotalsRowProps {
 
 export function TotalsRow({ totals }: TotalsRowProps) {
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <StatCard
                 title={
                     <span className="inline-flex items-center gap-1.5">
@@ -118,6 +118,45 @@ export function TotalsRow({ totals }: TotalsRowProps) {
                 icon={ArrowDownUp}
                 subValue={pct(totals.day_gain_pct)}
                 subValueClassName={colorForChange(totals.day_gain)}
+            />
+
+            <StatCard
+                title={
+                    <span className="inline-flex items-center gap-1.5">
+                        Realized P&amp;L
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Info className="h-3 w-3 cursor-help text-muted-foreground/60 hover:text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                                <p className="text-xs leading-relaxed">
+                                    Total money booked over the portfolio&apos;s lifetime:
+                                    realized capital gains from closed/partial sells
+                                    <strong> plus </strong> dividends received.
+                                    <br />
+                                    Dividends are income from other sources, not capital
+                                    gains — they count toward total return here but are
+                                    excluded from the <a href="/tax" className="underline">capital-gains</a> computation.
+                                </p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </span>
+                }
+                value={inrSigned(totals.total_realized_with_dividends)}
+                icon={TrendingUp}
+                subValue={
+                    <>
+                        <span className={colorForChange(totals.realized_pnl_lifetime)}>
+                            Capital: {inrSigned(totals.realized_pnl_lifetime)}
+                        </span>
+                        <br />
+                        <span className="text-muted-foreground/60">
+                            Dividends: {inr(totals.total_dividends_lifetime)} ·{" "}
+                            {totals.fully_exited_lifetime} closed
+                        </span>
+                    </>
+                }
+                subValueClassName={colorForChange(totals.total_realized_with_dividends)}
             />
 
         </div>
