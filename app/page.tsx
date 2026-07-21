@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { AddHoldingDialog } from "@/components/add-holding-dialog";
 import { HoldingsTable } from "@/components/holdings-table";
 import { ReconciliationBadge } from "@/components/reconciliation-badge";
 import { RefreshButton } from "@/components/refresh-button";
@@ -172,7 +173,14 @@ export default function DashboardPage() {
             </CollapsibleSection>
 
             <CollapsibleSection title="Holdings">
-              <HoldingsTable holdings={holdingsQuery.data} />
+              <div className="space-y-3">
+                {/* #54: independent add-a-holding entry point — record a brand-new
+                    purchase of a not-yet-held stock via the existing create path. */}
+                <div className="flex justify-end">
+                  <AddHoldingDialog />
+                </div>
+                <HoldingsTable holdings={holdingsQuery.data} />
+              </div>
             </CollapsibleSection>
           </div>
         )}

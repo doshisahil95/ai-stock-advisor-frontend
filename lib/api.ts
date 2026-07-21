@@ -274,6 +274,11 @@ export interface BuyPayload {
     total_fees?: string;
     trade_date: string;
     notes?: string;
+    // #54: optional explicit ISIN override. The backend AddBuyRequest accepts
+    // `isin` and skips its lookup_isin() fallback when supplied. The add-a-holding
+    // flow already resolved the instrument via /instruments/search, so it passes
+    // the ISIN directly (deterministic; avoids the broker="ICICI" lookup path).
+    isin?: string;
 }
 
 export interface SellPayload {
