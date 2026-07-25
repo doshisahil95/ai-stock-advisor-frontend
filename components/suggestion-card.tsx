@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Check, X, EyeOff, Eye } from "lucide-react";
+import { ChevronDown, ChevronUp, Check, X, EyeOff, Eye, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -89,6 +89,18 @@ export function SuggestionCard({
         dossier?.concentration_note &&
         dossier.concentration_note.length > 0 &&
         !dossier.concentration_note.startsWith("(");
+    // #55: LLM-authored hold-horizon (buy-side only). Bucket is always present
+    // on a fresh buy dossier (defaults to "medium"); the three prose fields use
+    // the standard "(...)" unavailable marker, so guard with !startsWith("(").
+    const hasHorizon =
+        !isSellSide &&
+        Boolean(dossier?.hold_horizon) &&
+        !dossier?.narrative_unavailable;
+    const isAvail = (s?: string) =>
+        Boolean(s && s.length > 0 && !s.startsWith("("));
+    const showHorizonExpectedMove = hasHorizon && isAvail(dossier?.hold_horizon_expected_move);
+    const showHorizonRationale = hasHorizon && isAvail(dossier?.hold_horizon_rationale);
+    const showHorizonReviewTrigger = hasHorizon && isAvail(dossier?.hold_horizon_review_trigger);
 
     return (
         <Card>
@@ -186,6 +198,27 @@ export function SuggestionCard({
                         {dossier!.one_line_thesis}
                     </p>
                 ) : null}
+
+                {/* #55: hold-horizon strip — visible without expanding so every
+                    buy candidate carries a time frame + the gain that justifies
+                    committing capital for that long. */}
+                {hasHorizon ? (
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                        <span
+                            className={`inline-flex items-center gap-1 rounded px-2 py-0.5 font-medium ${horizonBadgeClass(
+                                dossier!.hold_horizon!
+                            )}`}
+                        >
+                            <Clock className="h-3 w-3" />
+                            {horizonLabel(dossier!.hold_horizon!)}
+                        </span>
+                        {showHorizonExpectedMove ? (
+                            <span className="text-muted-foreground">
+                                {dossier!.hold_horizon_expected_move}
+                            </span>
+                        ) : null}
+                    </div>
+                ) : null}
             </CardHeader>
 
             <CardContent className="pt-0">
@@ -267,6 +300,41 @@ export function SuggestionCard({
                                 ) : dossier.portfolio_fit ? (
                                     <Section label="Portfolio fit">
                                         <p className="text-sm">{dossier.portfolio_fit}</p>
+                                    </Section>
+                                ) : null}
+                                {/* #55: hold-horizon detail (buy-side). */}
+                                {hasHorizon ? (
+                                    <Section label="Expected hold horizon">
+                                        <div className="space-y-2 text-sm">
+                                            <p className="flex flex-wrap items-center gap-2">
+                                                <span
+                                                    className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium ${horizonBadgeClass(
+                                                        dossier.hold_horizon!
+                                                    )}`}
+                                                >
+                                                    <Clock className="h-3 w-3" />
+                                                    {horizonLabel(dossier.hold_horizon!)}
+                                                </span>
+                                            </p>
+                                            {showHorizonExpectedMove ? (
+                                                <p>
+                                                    <span className="font-medium">Why the wait pays: </span>
+                                                    {dossier.hold_horizon_expected_move}
+                                                </p>
+                                            ) : null}
+                                            {showHorizonRationale ? (
+                                                <p>
+                                                    <span className="font-medium">Rationale: </span>
+                                                    {dossier.hold_horizon_rationale}
+                                                </p>
+                                            ) : null}
+                                            {showHorizonReviewTrigger ? (
+                                                <p>
+                                                    <span className="font-medium">Re-check early if: </span>
+                                                    {dossier.hold_horizon_review_trigger}
+                                                </p>
+                                            ) : null}
+                                        </div>
                                     </Section>
                                 ) : null}
                             </div>
@@ -641,6 +709,23 @@ function FeedbackButton({
             ) : null}
         </span>
     );
+}
+
+// #55: hold-horizon presentation helpers. Bucket -> human label + color.
+function horizonLabel(bucket: "short" | "medium" | "long"): string {
+    if (bucket === "short") return "Short horizon · ~1–3 months";
+    if (bucket === "long") return "Long horizon · 12 months+";
+    return "Medium horizon · ~3–12 months";
+}
+
+function horizonBadgeClass(bucket: "short" | "medium" | "long"): string {
+    if (bucket === "short") {
+        return "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300";
+    }
+    if (bucket === "long") {
+        return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300";
+    }
+    return "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300";
 }
 
 function Section({

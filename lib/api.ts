@@ -454,6 +454,13 @@ export interface SuggestionDossier {
     model?: string;
     // Commit A enrichment
     plain_english_summary?: string;
+    // #55 — LLM-authored hold-horizon (buy-side only). hold_horizon is one of
+    // "short" | "medium" | "long"; the three prose fields use the standard
+    // "(...)" unavailable marker, so guard renders with !value.startsWith("(").
+    hold_horizon?: "short" | "medium" | "long";
+    hold_horizon_expected_move?: string;
+    hold_horizon_rationale?: string;
+    hold_horizon_review_trigger?: string;
 }
 
 export type SuggestionDirection = "buy" | "sell";
