@@ -142,11 +142,12 @@ export default function SuggestionsPage() {
 
     const runMutation = useMutation({
         mutationFn: () => api.triggerSuggestionRun(direction),
-        onSuccess: (res) => {
+        onSuccess: () => {
             setRunning(true);
             runStatusQuery.refetch();
             toast.info(`${direction === "buy" ? "Buy" : "Sell"} run started`, {
-                description: res.message,
+                description:
+                    "This takes a few minutes. Results will load automatically when it finishes.",
             });
         },
         onError: (error) => {
