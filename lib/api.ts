@@ -537,6 +537,26 @@ export interface FeedbackPayload {
     note?: string;
 }
 
+// #55-followup — manual "run now" trigger for the suggestions pipeline.
+/** POST /suggestions/run — 202 fire-and-forget. The pipeline runs in the
+ *  background (~5 min); poll getSuggestionRunStatus or watch
+ *  getLatestSuggestionRun for a newer run_date. notify=False (no digest, no
+ *  outcome rows). 409 if a run for this direction is already in flight. */
+export interface ManualRunResponse {
+    status: "started";
+    direction: SuggestionDirection;
+    run_started_at: string;
+    message: string;
+}
+
+/** GET /suggestions/run/status — is a manual (or overlapping cron) run for
+ *  this direction currently executing? */
+export interface ManualRunStatus {
+    direction: SuggestionDirection;
+    running: boolean;
+    started_at: string | null;
+}
+
 export interface SignalMeta {
     signal_name: string;
     display_name: string;
@@ -940,6 +960,18 @@ export const api = {
         direction: SuggestionDirection = "buy"
     ): Promise<SuggestionPerformance> =>
         apiFetch(`/suggestions/performance?direction=${direction}`),
+
+    /** #55-followup — kick off a manual run (fire-and-forget, 202). */
+    triggerSuggestionRun: (
+        direction: SuggestionDirection = "buy"
+    ): Promise<ManualRunResponse> =>
+        apiFetch(`/suggestions/run?direction=${direction}`, { method: "POST" }),
+
+    /** #55-followup — poll whether a manual run is still executing. */
+    getSuggestionRunStatus: (
+        direction: SuggestionDirection = "buy"
+    ): Promise<ManualRunStatus> =>
+        apiFetch(`/suggestions/run/status?direction=${direction}`),
 
     submitFeedback: (
         isin: string,

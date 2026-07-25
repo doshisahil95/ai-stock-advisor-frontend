@@ -1,10 +1,10 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, BarChart3, RefreshCw, AlertCircle } from "lucide-react";
+import { ArrowLeft, BarChart3, RefreshCw, AlertCircle, Play } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -102,6 +102,84 @@ export default function SuggestionsPage() {
         feedbackMutation.mutate({ isin, action });
     };
 
+    // #55-followup: manual "Run now". POST is fire-and-forget (202); the
+    // pipeline runs on the server (~5 min). We then poll the run status and,
+    // when it flips to not-running, refetch the latest run so fresh dossiers
+    // (and #55 hold-horizons) appear. `running` is seeded by the POST and by
+    // an initial status check on direction change, so a run kicked off in
+    // another tab (or an overlapping Sunday cron) also shows as busy.
+    const [running, setRunning] = useState(false);
+
+    const runStatusQuery = useQuery({
+        queryKey: ["suggestions", "run-status", direction],
+        queryFn: () => api.getSuggestionRunStatus(direction),
+        // Poll every 10s only while we believe a run is in flight.
+        refetchInterval: running ? 10_000 : false,
+    });
+
+    // When the server-reported status transitions running -> idle, pull fresh
+    // data and let the user know. Also syncs `running` if a run is discovered.
+    useEffect(() => {
+        const serverRunning = runStatusQuery.data?.running;
+        if (serverRunning === undefined) return;
+        if (serverRunning && !running) {
+            setRunning(true);
+            return;
+        }
+        if (!serverRunning && running) {
+            setRunning(false);
+            queryClient.refetchQueries({
+                queryKey: ["suggestions", "latest", direction],
+            });
+            queryClient.refetchQueries({
+                queryKey: ["suggestions", "history", direction],
+            });
+            toast.success(`Fresh ${direction} run ready`, {
+                description: "New candidates and dossiers loaded.",
+            });
+        }
+    }, [runStatusQuery.data?.running, running, direction, queryClient]);
+
+    const runMutation = useMutation({
+        mutationFn: () => api.triggerSuggestionRun(direction),
+        onSuccess: (res) => {
+            setRunning(true);
+            runStatusQuery.refetch();
+            toast.info(`${direction === "buy" ? "Buy" : "Sell"} run started`, {
+                description: res.message,
+            });
+        },
+        onError: (error) => {
+            if (error instanceof ApiError && error.status === 409) {
+                // A run is already in flight (this tab, another tab, or the cron).
+                setRunning(true);
+                runStatusQuery.refetch();
+                toast.warning("A run is already in progress", {
+                    description: "Waiting for it to finish.",
+                });
+                return;
+            }
+            toast.error(`Could not start run: ${error.message}`);
+        },
+    });
+
+    const runNowButton = (
+        <Button
+            variant="default"
+            size="sm"
+            className="h-8 gap-1.5"
+            onClick={() => runMutation.mutate()}
+            disabled={running || runMutation.isPending}
+        >
+            {running ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+                <Play className="h-3.5 w-3.5" />
+            )}
+            {running ? "Running…" : "Run now"}
+        </Button>
+    );
+
     return (
         <main className="min-h-screen bg-background">
             <div className="mx-auto max-w-6xl px-4 py-6 md:px-6 lg:px-8">
@@ -133,20 +211,24 @@ export default function SuggestionsPage() {
                                     : "AI-ranked sell-side trim / book-profit candidates from current holdings."}
                         </p>
                     </div>
-                    {latestQuery.data && (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 gap-1.5"
-                            onClick={() => latestQuery.refetch()}
-                            disabled={latestQuery.isFetching}
-                        >
-                            <RefreshCw
-                                className={`h-3.5 w-3.5 ${latestQuery.isFetching ? "animate-spin" : ""}`}
-                            />
-                            Refresh
-                        </Button>
-                    )}
+                    <div className="flex items-center gap-2">
+                        {latestQuery.data && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 gap-1.5"
+                                onClick={() => latestQuery.refetch()}
+                                disabled={latestQuery.isFetching}
+                            >
+                                <RefreshCw
+                                    className={`h-3.5 w-3.5 ${latestQuery.isFetching ? "animate-spin" : ""}`}
+                                />
+                                Refresh
+                            </Button>
+                        )}
+                        {/* #55-followup: manual mid-week run trigger. */}
+                        {runNowButton}
+                    </div>
                 </header>
 
                 {/* Empty state — no runs yet */}
@@ -159,12 +241,15 @@ export default function SuggestionsPage() {
                                     No suggestion runs available yet.
                                 </p>
                                 <p className="mt-1 text-xs text-muted-foreground">
-                                    Run{" "}
+                                    Trigger a run below, or run{" "}
                                     <code className="rounded bg-muted px-1 py-0.5">
                                         scripts/run_weekly_suggestions.py
                                     </code>{" "}
                                     on the server.
                                 </p>
+                                <div className="mt-4 flex justify-center">
+                                    {runNowButton}
+                                </div>
                             </CardContent>
                         </Card>
                     )}
