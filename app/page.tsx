@@ -173,14 +173,12 @@ export default function DashboardPage() {
             </CollapsibleSection>
 
             <CollapsibleSection title="Holdings">
-              <div className="space-y-3">
-                {/* #54: independent add-a-holding entry point — record a brand-new
-                    purchase of a not-yet-held stock via the existing create path. */}
-                <div className="flex justify-end">
-                  <AddHoldingDialog />
-                </div>
-                <HoldingsTable holdings={holdingsQuery.data} />
-              </div>
+              {/* #54: AddHoldingDialog lives in the HoldingsTable card header,
+                  next to the search input — cleaner than a standalone toolbar row. */}
+              <HoldingsTable
+                holdings={holdingsQuery.data}
+                headerAction={<AddHoldingDialog />}
+              />
             </CollapsibleSection>
           </div>
         )}

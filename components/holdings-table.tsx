@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, ArrowUpDown, Search, X } from "lucide-react";
+import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import {
     Card,
@@ -25,6 +26,8 @@ import { colorForChange, inr, inrSigned, pct } from "@/lib/format";
 
 interface HoldingsTableProps {
     holdings: Holding[];
+    /** Optional action rendered to the right of the search input in the card header. */
+    headerAction?: ReactNode;
 }
 
 type SortKey =
@@ -62,7 +65,7 @@ function getValue(h: Holding, key: SortKey): number | string {
     return raw as number;
 }
 
-export function HoldingsTable({ holdings }: HoldingsTableProps) {
+export function HoldingsTable({ holdings, headerAction }: HoldingsTableProps) {
     const [sortKey, setSortKey] = useState<SortKey>("current_value");
     const [sortDir, setSortDir] = useState<SortDir>("desc");
     const [search, setSearch] = useState("");
@@ -111,25 +114,28 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
                             Click any column header to sort. Default: highest current value first.
                         </CardDescription>
                     </div>
-                    <div className="relative w-full max-w-xs">
-                        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            placeholder="Search symbol or name…"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="h-9 pl-8 pr-8"
-                        />
-                        {search && (
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2"
-                                onClick={() => setSearch("")}
-                                aria-label="Clear search"
-                            >
-                                <X className="h-3 w-3" />
-                            </Button>
-                        )}
+                    <div className="flex items-center gap-2">
+                        <div className="relative w-full max-w-xs">
+                            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                placeholder="Search symbol or name…"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="h-9 pl-8 pr-8"
+                            />
+                            {search && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2"
+                                    onClick={() => setSearch("")}
+                                    aria-label="Clear search"
+                                >
+                                    <X className="h-3 w-3" />
+                                </Button>
+                            )}
+                        </div>
+                        {headerAction}
                     </div>
                 </div>
             </CardHeader>
