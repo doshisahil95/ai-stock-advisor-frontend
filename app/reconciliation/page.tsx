@@ -7,7 +7,9 @@ import {
     AlertTriangle,
     ArrowLeft,
     CheckCircle2,
+    Coins,
     HelpCircle,
+    Newspaper,
 } from "lucide-react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -34,8 +36,9 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import type { DividendAnnouncementDrift, DividendDriftRow } from "@/lib/api";
 import { api, ApiError } from "@/lib/api";
-import { colorForChange, dateTime, inr, inrSigned } from "@/lib/format";
+import { colorForChange, dateShort, dateTime, inr, inrSigned } from "@/lib/format";
 
 const formSchema = z.object({
     icici_invested: z.coerce.number().positive("Must be positive"),
@@ -58,6 +61,11 @@ export default function ReconciliationPage() {
     const historyQuery = useQuery({
         queryKey: ["reconciliation", "history"],
         queryFn: () => api.getReconciliationHistory(30),
+    });
+
+    const dividendDriftQuery = useQuery({
+        queryKey: ["reconciliation", "dividend-drift"],
+        queryFn: () => api.getDividendDrift(),
     });
 
     const submitMutation = useMutation({
@@ -145,6 +153,12 @@ export default function ReconciliationPage() {
 
                 {/* Status card */}
                 <StatusCard snapshot={latestQuery.data} loading={latestQuery.isLoading} />
+
+                {/* Dividend drift (#65) */}
+                <DividendDriftCard
+                    rows={dividendDriftQuery.data}
+                    loading={dividendDriftQuery.isLoading}
+                />
 
                 {/* New snapshot form */}
                 <Card className="mt-6">
@@ -424,6 +438,183 @@ function DeltaRow({
                         drift {inr(drift)}
                     </Badge>
                 )}
+            </div>
+        </div>
+    );
+}
+
+function statusBadge(status: DividendAnnouncementDrift["status"]) {
+    if (status === "missing_receipt") {
+        return (
+            <Badge variant="destructive" className="gap-1 text-xs">
+                <AlertTriangle className="h-3 w-3" />
+                not recorded
+            </Badge>
+        );
+    }
+    if (status === "matched") {
+        return (
+            <Badge
+                variant="outline"
+                className="gap-1 border-emerald-300 text-xs text-emerald-700 dark:border-emerald-900 dark:text-emerald-400"
+            >
+                <CheckCircle2 className="h-3 w-3" />
+                recorded
+            </Badge>
+        );
+    }
+    return (
+        <Badge variant="outline" className="text-xs text-muted-foreground">
+            pending
+        </Badge>
+    );
+}
+
+function DividendDriftCard({
+    rows,
+    loading,
+}: {
+    rows: DividendDriftRow[] | undefined;
+    loading: boolean;
+}) {
+    return (
+        <Card className="mt-6">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Coins className="h-4 w-4 text-muted-foreground" />
+                    Dividend drift
+                </CardTitle>
+                <CardDescription>
+                    Announced (from market data) vs recorded (your DIVIDEND entries). A
+                    dividend is real money earned even though it isn&apos;t a capital gain —
+                    an unrecorded payout understates your realised gain. Record any{" "}
+                    <span className="font-medium text-foreground">not recorded</span> row as a
+                    DIVIDEND transaction. This is not a tax view.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                {loading && (
+                    <div className="space-y-2">
+                        {[0, 1, 2].map((i) => (
+                            <Skeleton key={i} className="h-10 w-full" />
+                        ))}
+                    </div>
+                )}
+
+                {rows && rows.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                        No holdings to check.
+                    </p>
+                )}
+
+                {rows && rows.length > 0 && <DividendDriftBody rows={rows} />}
+            </CardContent>
+        </Card>
+    );
+}
+
+function DividendDriftBody({ rows }: { rows: DividendDriftRow[] }) {
+    // Names with announcements first, and within that, missing-receipt names first.
+    const withAnnouncements = rows
+        .filter((r) => r.announcements.length > 0)
+        .sort((a, b) => b.missing_count - a.missing_count);
+    const totalMissing = rows.reduce((n, r) => n + r.missing_count, 0);
+
+    if (withAnnouncements.length === 0) {
+        return (
+            <p className="text-sm text-muted-foreground">
+                No dividend announcements captured yet for your holdings. They are
+                refreshed weekly from market data.
+            </p>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            {totalMissing > 0 ? (
+                <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-300">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>
+                        {totalMissing} announced dividend{totalMissing === 1 ? "" : "s"}{" "}
+                        across your holdings {totalMissing === 1 ? "is" : "are"} not yet
+                        recorded. Recording them keeps your realised gain accurate.
+                    </span>
+                </div>
+            ) : (
+                <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50/60 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-300">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    <span>All captured dividend announcements are recorded.</span>
+                </div>
+            )}
+
+            <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="text-xs uppercase tracking-wider">
+                                Stock
+                            </TableHead>
+                            <TableHead className="text-xs uppercase tracking-wider">
+                                Ex-date
+                            </TableHead>
+                            <TableHead className="text-right text-xs uppercase tracking-wider">
+                                Per share
+                            </TableHead>
+                            <TableHead className="text-right text-xs uppercase tracking-wider">
+                                Est. received
+                            </TableHead>
+                            <TableHead className="text-xs uppercase tracking-wider">
+                                Status
+                            </TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {withAnnouncements.flatMap((row) =>
+                            row.announcements
+                                // newest ex-date first
+                                .slice()
+                                .sort((a, b) => b.ex_date.localeCompare(a.ex_date))
+                                .map((a, idx) => (
+                                    <TableRow
+                                        key={`${row.isin}-${a.ex_date}`}
+                                        className="hover:bg-accent/40"
+                                    >
+                                        <TableCell className="align-top">
+                                            {idx === 0 ? (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium">
+                                                        {row.symbol}
+                                                    </span>
+                                                    {row.has_corporate_action_news && (
+                                                        <span
+                                                            title="A corporate-action news item was found for this stock"
+                                                            className="text-muted-foreground"
+                                                        >
+                                                            <Newspaper className="h-3.5 w-3.5" />
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground">
+                                                    ·
+                                                </span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="font-mono text-xs">
+                                            {dateShort(a.ex_date, "with-year")}
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono text-xs">
+                                            {inr(a.amount_per_share)}
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono text-xs">
+                                            {inr(a.expected_amount)}
+                                        </TableCell>
+                                        <TableCell>{statusBadge(a.status)}</TableCell>
+                                    </TableRow>
+                                ))
+                        )}
+                    </TableBody>
+                </Table>
             </div>
         </div>
     );

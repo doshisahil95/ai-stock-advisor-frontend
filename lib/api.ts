@@ -255,6 +255,31 @@ export interface ManualSnapshotPayload {
     set_as_baseline?: boolean;
 }
 
+// ── Dividend drift (#65) ──────────────────────────────────────────────────────
+// Announced (yfinance) vs received (recorded DIVIDEND txns) vs booked
+// (holdings.total_dividends_received). Read-only; NOT a tax view — dividends are
+// income, not capital gains. Numeric fields are strings (Decimal precision).
+
+export type DividendDriftStatus = "matched" | "missing_receipt" | "pending";
+
+export interface DividendAnnouncementDrift {
+    ex_date: string; // ISO
+    amount_per_share: string;
+    expected_amount: string; // amount_per_share * quantity held
+    status: DividendDriftStatus;
+    matched_trade_date: string | null; // ISO of the matching DIVIDEND txn, if any
+}
+
+export interface DividendDriftRow {
+    isin: string;
+    symbol: string;
+    quantity: string;
+    booked_dividends: string; // holdings.total_dividends_received
+    has_corporate_action_news: boolean;
+    announcements: DividendAnnouncementDrift[];
+    missing_count: number;
+}
+
 export interface UpdateHoldingPayload {
     thesis?: string | null;
     user_notes?: string | null;
@@ -870,6 +895,10 @@ export const api = {
             method: "POST",
             body: JSON.stringify(payload),
         }),
+
+    /** Dividend-drift matrix: announced vs received vs booked per held name (#65). */
+    getDividendDrift: (): Promise<DividendDriftRow[]> =>
+        apiFetch("/reconciliation/dividend-drift"),
 
     /** All active cost-basis adjustments (CA-facing audit trail). */
     getCostBasisAdjustments: (): Promise<CostBasisAdjustment[]> =>
