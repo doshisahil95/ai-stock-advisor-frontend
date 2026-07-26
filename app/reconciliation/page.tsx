@@ -36,6 +36,11 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { DividendAnnouncementDrift, DividendDriftRow } from "@/lib/api";
 import { api, ApiError } from "@/lib/api";
 import { colorForChange, dateShort, dateTime, inr, inrSigned } from "@/lib/format";
@@ -547,6 +552,12 @@ function DividendDriftBody({ rows }: { rows: DividendDriftRow[] }) {
                 </div>
             )}
 
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Newspaper className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                next to a stock means a recent corporate-action news item was found for
+                it (corroborates the announced dividend).
+            </p>
+
             <div className="overflow-x-auto">
                 <Table>
                     <TableHeader>
@@ -586,12 +597,22 @@ function DividendDriftBody({ rows }: { rows: DividendDriftRow[] }) {
                                                         {row.symbol}
                                                     </span>
                                                     {row.has_corporate_action_news && (
-                                                        <span
-                                                            title="A corporate-action news item was found for this stock"
-                                                            className="text-muted-foreground"
-                                                        >
-                                                            <Newspaper className="h-3.5 w-3.5" />
-                                                        </span>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <span className="inline-flex cursor-help items-center text-sky-600 dark:text-sky-400">
+                                                                    <Newspaper className="h-3.5 w-3.5" />
+                                                                </span>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p className="max-w-xs text-xs">
+                                                                    A recent corporate-action news
+                                                                    item was found for {row.symbol},
+                                                                    corroborating an announced
+                                                                    dividend or other corporate
+                                                                    action.
+                                                                </p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
                                                     )}
                                                 </div>
                                             ) : (
