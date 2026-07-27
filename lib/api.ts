@@ -865,6 +865,66 @@ export interface CapitalGainsResponse {
     lots: CapitalGainsLot[];
 }
 
+// ── Corporate actions (#68) ────────────────────────────────────────────────
+// POST /transactions/corporate-action records a SPLIT / BONUS / demerger once
+// and auto-maps it onto holdings via the single FIFO source of truth. The FIFO
+// cost math is already correct (#53); this is the data-entry front-end.
+// Numeric fields are sent as strings (Decimal precision).
+
+export type CorporateActionType = "split" | "bonus" | "demerger";
+
+export interface CorporateActionPayload {
+    action_type: CorporateActionType;
+    // Affected (parent) instrument.
+    isin: string;
+    symbol: string;
+    exchange?: string;
+    trade_date: string; // ISO
+    notes?: string;
+    source_ref?: string; // idempotency key
+    // split / bonus
+    ratio_from?: number;
+    ratio_to?: number;
+    bonus_quantity?: string; // explicit override when broker allotment != ratio*held
+    // demerger child + §49(2C) apportionment
+    child_isin?: string;
+    child_symbol?: string;
+    child_quantity?: string;
+    child_cost_pct?: string; // fraction in (0,1), e.g. "0.3115"
+    parent_total_cost?: string;
+    acquired_date?: string; // ISO — parent's original acquisition date (#53)
+    it_act_section?: string;
+}
+
+/** One parent BUY-row reprice instruction returned by a demerger — apply via
+ *  the audited PATCH /transactions/{id} path (NOT applied by the endpoint). */
+export interface ParentRepriceInstruction {
+    transaction_id: string;
+    trade_date: string;
+    old_price: string;
+    new_price: string;
+    old_fees: string;
+    new_fees: string;
+}
+
+export interface CorporateActionResponse {
+    status: "recorded" | "recorded_with_warning" | "already_recorded";
+    isin: string;
+    symbol?: string;
+    message?: string;
+    warning?: string;
+    source_ref?: string;
+    // bonus
+    bonus_quantity?: string;
+    // demerger
+    child_isin?: string;
+    child_cost_per_share?: string;
+    adjustment_amount?: string;
+    parent_retained_factor?: string;
+    cost_basis_adjustment_created?: boolean;
+    parent_reprice?: ParentRepriceInstruction[];
+}
+
 export const api = {
     getSummary: (): Promise<PortfolioSummary> => apiFetch("/portfolio/summary"),
     getHoldings: (): Promise<Holding[]> => apiFetch("/portfolio/holdings"),
@@ -971,6 +1031,17 @@ export const api = {
     /** Audit history for a single transaction. */
     getTransactionAudit: (txId: string): Promise<TransactionAuditEntry[]> =>
         apiFetch(`/transactions/${txId}/audit`),
+
+    /** #68 — record a SPLIT / BONUS / demerger once; backend auto-maps it onto
+     *  holdings via FIFO recompute. A demerger also auto-creates the §49(2C)
+     *  cost_basis_adjustment and returns the parent-reprice follow-up. */
+    recordCorporateAction: (
+        payload: CorporateActionPayload
+    ): Promise<CorporateActionResponse> =>
+        apiFetch("/transactions/corporate-action", {
+            method: "POST",
+            body: JSON.stringify(payload),
+        }),
 
     // ── Suggestions ────────────────────────────────────────────────────────────
 

@@ -54,6 +54,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { CorporateActionDialog } from "@/components/corporate-action-dialog";
 import { TransactionEditSheet } from "@/components/transaction-edit-sheet";
 import { api, ApiError, type Transaction } from "@/lib/api";
 import { dateTime, inr } from "@/lib/format";
@@ -174,17 +175,20 @@ export default function TransactionsPage() {
                             Back to portfolio
                         </Button>
                     </Link>
-                    <Button
-                        asChild
-                        variant="outline"
-                        size="sm"
-                        className="h-8 gap-1.5"
-                    >
-                        <Link href="/transactions/audit">
-                            <History className="h-3.5 w-3.5" />
-                            View audit log
-                        </Link>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <CorporateActionDialog />
+                        <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1.5"
+                        >
+                            <Link href="/transactions/audit">
+                                <History className="h-3.5 w-3.5" />
+                                View audit log
+                            </Link>
+                        </Button>
+                    </div>
                 </div>
 
                 <header className="mb-6">
