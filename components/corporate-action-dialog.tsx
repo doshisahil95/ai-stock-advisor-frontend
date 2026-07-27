@@ -35,6 +35,19 @@ import {
 const ISIN_RE = /^[A-Z0-9]{12}$/;
 const todayStr = () => new Date().toISOString().split("T")[0];
 
+// #72 U1-e: NaN-safe numeric guards. `Number("abc") <= 0` is false and
+// `NaN >= 1` is false, so the old comparisons let a non-numeric string slip past
+// client validation and get POSTed as a bad Decimal string. Require a finite
+// number explicitly.
+const isPosNum = (v: string) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0;
+};
+const isFraction = (v: string) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 && n < 1;
+};
+
 /**
  * #68 — record a SPLIT / BONUS / demerger once. The backend auto-maps it onto
  * holdings via the single FIFO source of truth (no manual math). A demerger
@@ -52,6 +65,7 @@ export function CorporateActionDialog() {
     const [actionType, setActionType] = useState<CorporateActionType>("split");
     const [isin, setIsin] = useState("");
     const [symbol, setSymbol] = useState("");
+    const [exchange, setExchange] = useState<"NSE" | "BSE">("NSE");
     const [tradeDate, setTradeDate] = useState("");
     const [notes, setNotes] = useState("");
     const [sourceRef, setSourceRef] = useState("");
@@ -73,6 +87,7 @@ export function CorporateActionDialog() {
         setActionType("split");
         setIsin("");
         setSymbol("");
+        setExchange("NSE");
         setTradeDate("");
         setNotes("");
         setSourceRef("");
@@ -96,23 +111,22 @@ export function CorporateActionDialog() {
 
         if (actionType === "split" || actionType === "bonus") {
             if (!ratioFrom || !ratioTo) return "Both ratio fields are required.";
-            if (Number(ratioFrom) <= 0 || Number(ratioTo) <= 0)
-                return "Ratios must be positive.";
-            if (actionType === "bonus" && bonusQty && Number(bonusQty) <= 0)
-                return "Bonus quantity must be positive.";
+            if (!isPosNum(ratioFrom) || !isPosNum(ratioTo))
+                return "Ratios must be positive numbers.";
+            if (actionType === "bonus" && bonusQty.trim() && !isPosNum(bonusQty))
+                return "Bonus quantity must be a positive number.";
         }
 
         if (actionType === "demerger") {
             if (!ISIN_RE.test(childIsin.toUpperCase()))
                 return "Child ISIN must be 12 uppercase alphanumerics.";
             if (!childSymbol.trim()) return "Child symbol is required.";
-            if (!childQty || Number(childQty) <= 0)
-                return "Child quantity must be positive.";
-            const pct = Number(childCostPct);
-            if (!childCostPct || pct <= 0 || pct >= 1)
-                return "Child cost % must be a fraction strictly between 0 and 1 (e.g. 0.3115).";
-            if (!parentTotalCost || Number(parentTotalCost) <= 0)
-                return "Parent total cost must be positive.";
+            if (!isPosNum(childQty))
+                return "Child quantity must be a positive number.";
+            if (!isFraction(childCostPct))
+                return "Child cost % must be a number strictly between 0 and 1 (e.g. 0.3115).";
+            if (!isPosNum(parentTotalCost))
+                return "Parent total cost must be a positive number.";
         }
         return null;
     }, [
@@ -136,6 +150,7 @@ export function CorporateActionDialog() {
                 action_type: actionType,
                 isin: isin.toUpperCase(),
                 symbol: symbol.trim().toUpperCase(),
+                exchange, // #72 U1-f: send the exchange (was defaulted server-side)
                 trade_date: new Date(tradeDate).toISOString(),
                 notes: notes.trim() || undefined,
                 source_ref: sourceRef.trim() || undefined,
@@ -168,6 +183,12 @@ export function CorporateActionDialog() {
                       })
                     : Promise.resolve(),
                 queryClient.refetchQueries({ queryKey: ["dashboard"] }),
+                // #72 U1-h: a demerger auto-creates a §49(2C) cost_basis_adjustment
+                // and every corp action changes quantities/cost, so the cost-basis
+                // and reconciliation views must refresh too (prefix-matches
+                // ["cost-basis","adjustments"] and the ["reconciliation",...] keys).
+                queryClient.refetchQueries({ queryKey: ["cost-basis"] }),
+                queryClient.refetchQueries({ queryKey: ["reconciliation"] }),
             ]);
 
             if (resp.status === "already_recorded") {
@@ -180,12 +201,21 @@ export function CorporateActionDialog() {
                     description: resp.warning ?? "Re-run recompute for this ISIN.",
                 });
             } else if (actionType === "demerger") {
+                // #72 U1-g: guard interpolation — a recorded_with_warning or an
+                // unexpected shape can leave these undefined; never render
+                // "₹undefined/sh".
                 const n = resp.parent_reprice?.length ?? 0;
+                const perShare = resp.child_cost_per_share
+                    ? `at ₹${resp.child_cost_per_share}/sh `
+                    : "";
+                const factor = resp.parent_retained_factor
+                    ? ` (×${resp.parent_retained_factor})`
+                    : "";
                 toast.success("Demerger recorded", {
                     description:
-                        `Child ${resp.child_isin} created at ₹${resp.child_cost_per_share}/sh; ` +
-                        `§49(2C) adjustment logged. ${n} parent BUY row(s) still need ` +
-                        `a cost reduction (×${resp.parent_retained_factor}) — apply via ` +
+                        `Child ${resp.child_isin ?? ""} created ${perShare}`.trim() +
+                        `; §49(2C) adjustment logged. ${n} parent BUY row(s) still need ` +
+                        `a cost reduction${factor} — apply via ` +
                         `the transaction edit flow to keep the audit trail intact.`,
                     duration: 12000,
                 });
@@ -279,17 +309,36 @@ export function CorporateActionDialog() {
                         </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                        <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                            Event date
-                        </Label>
-                        <Input
-                            type="date"
-                            value={tradeDate}
-                            max={todayStr()}
-                            onChange={(e) => setTradeDate(e.target.value)}
-                            className="h-9"
-                        />
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                                Event date
+                            </Label>
+                            <Input
+                                type="date"
+                                value={tradeDate}
+                                max={todayStr()}
+                                onChange={(e) => setTradeDate(e.target.value)}
+                                className="h-9"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                                Exchange
+                            </Label>
+                            <Select
+                                value={exchange}
+                                onValueChange={(v) => setExchange(v as "NSE" | "BSE")}
+                            >
+                                <SelectTrigger className="h-9">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="NSE">NSE</SelectItem>
+                                    <SelectItem value="BSE">BSE</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
 
                     {/* SPLIT / BONUS ratios */}
