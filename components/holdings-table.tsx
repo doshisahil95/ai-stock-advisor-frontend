@@ -74,8 +74,14 @@ export function HoldingsTable({ holdings, headerAction }: HoldingsTableProps) {
     const filtered = useMemo(() => {
         if (!search.trim()) return holdings;
         const q = search.trim().toUpperCase();
-        // Symbol prefix match — matches what the user types as if typing a ticker
-        return holdings.filter((h) => h.symbol.toUpperCase().startsWith(q));
+        // #79 U8-e: the placeholder says "symbol or name", so match BOTH — a
+        // symbol PREFIX (as if typing a ticker) OR a company-name SUBSTRING.
+        // Previously only symbol-prefix matched, making the placeholder a lie.
+        return holdings.filter(
+            (h) =>
+                h.symbol.toUpperCase().startsWith(q) ||
+                (h.name ?? "").toUpperCase().includes(q)
+        );
     }, [holdings, search]);
 
     const sorted = useMemo(() => {

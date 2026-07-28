@@ -20,6 +20,11 @@ export function RefreshButton() {
             queryClient.refetchQueries({ queryKey: ["dashboard"] }),
             queryClient.refetchQueries({ queryKey: ["reconciliation"] }),
             queryClient.refetchQueries({ queryKey: ["cost-basis"] }),
+            // #79 U8-e: include holding/transactions so a manual refresh is
+            // complete if this button is ever reused off the dashboard (no-op
+            // on the dashboard, where those keys aren't mounted).
+            queryClient.refetchQueries({ queryKey: ["holding"] }),
+            queryClient.refetchQueries({ queryKey: ["transactions"] }),
         ]);
         setTimeout(() => setRefreshing(false), 600);
     };

@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowDown, ArrowUp } from "lucide-react";
+import Link from "next/link";
 import {
     Card,
     CardContent,
@@ -38,9 +39,6 @@ interface MoverListProps {
     items: PortfolioSummary["top_gainers_by_pct"];
     icon: typeof ArrowUp;
 }
-
-import Link from "next/link";
-// (add this to the imports at the top)
 
 function MoverList({ title, items, icon: Icon }: MoverListProps) {
     return (
