@@ -286,7 +286,14 @@ export function SuggestionCard({
                                     tone="neutral"
                                 />
                                 <Section label="Valuation verdict">
-                                    <p className="text-sm">{dossier.valuation_verdict}</p>
+                                    <p className="text-sm capitalize">{dossier.valuation_verdict}</p>
+                                    {/* #44 (TD3): show the rationale beneath the label when present
+                                        (isAvail hides the "(insufficient data)" / "(unavailable)" markers). */}
+                                    {isAvail(dossier.valuation_rationale) && (
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            {dossier.valuation_rationale}
+                                        </p>
+                                    )}
                                 </Section>
                                 {showTaxConsideration ? (
                                     <Section label="Tax consideration">

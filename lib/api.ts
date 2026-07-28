@@ -471,6 +471,7 @@ export interface SuggestionDossier {
     bear_case: string[];
     key_risks: string[];
     valuation_verdict: string;
+    valuation_rationale?: string; // #44 (TD3): the "why" behind the verdict label
     portfolio_fit?: string;
     tax_consideration?: string;
     concentration_note?: string;
