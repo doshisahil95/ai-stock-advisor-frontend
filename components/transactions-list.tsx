@@ -39,6 +39,16 @@ const HEADERS: { key: SortKey; label: string; align: "left" | "right" }[] = [
     { key: "fees", label: "Fees", align: "right" },
 ];
 
+// #78 U7-d: prefer the backend-authoritative trade_value over a client-side
+// qty*price recompute (they can disagree by rounding/disclosure conventions).
+function txAmount(tx: Transaction): number {
+    if (tx.trade_value != null && tx.trade_value !== "") {
+        const v = parseFloat(tx.trade_value);
+        if (!Number.isNaN(v)) return v;
+    }
+    return parseFloat(tx.quantity) * parseFloat(tx.price);
+}
+
 function getValue(tx: Transaction, key: SortKey): number | string {
     switch (key) {
         case "trade_date":
@@ -50,7 +60,7 @@ function getValue(tx: Transaction, key: SortKey): number | string {
         case "price":
             return parseFloat(tx.price);
         case "amount":
-            return parseFloat(tx.quantity) * parseFloat(tx.price);
+            return txAmount(tx);
         case "fees":
             return parseFloat(tx.total_fees);
     }
@@ -85,7 +95,9 @@ export function TransactionsList({ isin }: TransactionsListProps) {
             setSortDir(sortDir === "asc" ? "desc" : "asc");
         } else {
             setSortKey(key);
-            setSortDir(key === "trade_date" || key === "type" ? "desc" : "desc");
+            // #79 U8-e: was a dead ternary (both branches "desc"). A new column
+            // starts descending.
+            setSortDir("desc");
         }
     };
 
@@ -156,7 +168,7 @@ function TxRow({ tx }: { tx: Transaction }) {
     const qty = parseFloat(tx.quantity);
     const price = parseFloat(tx.price);
     const fees = parseFloat(tx.total_fees);
-    const amount = qty * price;
+    const amount = txAmount(tx); // #78 U7-d: backend trade_value when present
 
     const TypeIcon =
         tx.type === "BUY"

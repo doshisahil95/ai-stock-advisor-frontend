@@ -132,7 +132,11 @@ export function BuySheet(props: BuySheetProps) {
             // Force-refetch (not just invalidate) so the UI reflects new state now.
             await Promise.all([
                 queryClient.refetchQueries({ queryKey: ["holding", isin] }),
-                queryClient.refetchQueries({ queryKey: ["transactions", isin] }),
+                // #78 U7-g: prefix ["transactions"] so BOTH the per-ISIN list
+                // (["transactions", isin]) and the transactions page's search
+                // key (["transactions","search",...]) refetch. The narrower
+                // ["transactions", isin] missed the search page.
+                queryClient.refetchQueries({ queryKey: ["transactions"] }),
                 queryClient.refetchQueries({ queryKey: ["dashboard"] }),
                 queryClient.refetchQueries({ queryKey: ["reconciliation"] }),
             ]);

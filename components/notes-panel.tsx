@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pencil, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
     Card,
@@ -34,6 +34,29 @@ export function NotesPanel({ holding }: NotesPanelProps) {
     const [stopLoss, setStopLoss] = useState(holding.stop_loss ?? "");
     const [targetPrice, setTargetPrice] = useState(holding.target_price ?? "");
     const [tagsInput, setTagsInput] = useState((holding.tags ?? []).join(", "));
+
+    // #78 U7-e: re-sync form state when the holding prop changes WHILE NOT
+    // editing (e.g. after an external recompute from a corp action). useState
+    // seeds only at mount, so without this, clicking Edit later showed STALE
+    // field values and a Save could overwrite fresh backend data. We only
+    // re-seed when not mid-edit, so an in-progress edit is never clobbered.
+    useEffect(() => {
+        if (!editing) {
+            setThesis(holding.thesis ?? "");
+            setUserNotes(holding.user_notes ?? "");
+            setStopLoss(holding.stop_loss ?? "");
+            setTargetPrice(holding.target_price ?? "");
+            setTagsInput((holding.tags ?? []).join(", "));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        holding.isin,
+        holding.thesis,
+        holding.user_notes,
+        holding.stop_loss,
+        holding.target_price,
+        holding.tags,
+    ]);
 
     const mutation = useMutation({
         mutationFn: (payload: UpdateHoldingPayload) =>

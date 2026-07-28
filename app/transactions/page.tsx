@@ -486,7 +486,11 @@ function TxRow({
     const qty = parseFloat(tx.quantity);
     const price = parseFloat(tx.price);
     const fees = parseFloat(tx.total_fees);
-    const amount = qty * price;
+    // #78 U7-d: prefer backend trade_value over a client-side qty*price recompute.
+    const amount =
+        tx.trade_value != null && tx.trade_value !== "" && !Number.isNaN(parseFloat(tx.trade_value))
+            ? parseFloat(tx.trade_value)
+            : qty * price;
 
     const TypeIcon =
         tx.type === "BUY" ? ArrowDownLeft : tx.type === "SELL" ? ArrowUpRight : Layers;

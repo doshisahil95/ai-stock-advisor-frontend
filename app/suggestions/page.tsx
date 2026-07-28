@@ -94,7 +94,10 @@ export default function SuggestionsPage() {
             toast.success(`${verb} ${vars.isin}`, { description });
         },
         onError: (error) => {
-            toast.error(`Feedback failed: ${error.message}`);
+            // #78 U7-g: unwrap ApiError.detail (the backend's human message)
+            // rather than the generic "API 4xx: ..." Error.message.
+            const msg = error instanceof ApiError ? error.detail : error.message;
+            toast.error(`Feedback failed: ${msg}`);
         },
     });
 
@@ -160,7 +163,8 @@ export default function SuggestionsPage() {
                 });
                 return;
             }
-            toast.error(`Could not start run: ${error.message}`);
+            const msg = error instanceof ApiError ? error.detail : error.message; // #78 U7-g
+            toast.error(`Could not start run: ${msg}`);
         },
     });
 

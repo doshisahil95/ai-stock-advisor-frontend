@@ -82,7 +82,12 @@ export default function ReconciliationPage() {
                 notes: values.notes || undefined,
                 set_as_baseline: values.set_as_baseline,
             }),
-        onSuccess: (snap) => {
+        onSuccess: async (snap) => {
+            // #78 U7-b: synchronous refetch BEFORE the toast (app-wide §14.4
+            // convention). The lazy invalidateQueries used here could paint the
+            // prior snapshot for a frame; refetchQueries + await guarantees the
+            // status/history reflect the new snapshot when the toast fires.
+            await queryClient.refetchQueries({ queryKey: ["reconciliation"] });
             if (snap.has_drift) {
                 toast.warning("Snapshot recorded — drift detected", {
                     description: "Alerts have been sent.",
@@ -90,7 +95,6 @@ export default function ReconciliationPage() {
             } else {
                 toast.success("Snapshot recorded — no drift");
             }
-            queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
             form.reset();
         },
         onError: (err: Error) => {
@@ -438,9 +442,14 @@ function DeltaRow({
                 <span className={`font-mono text-sm ${colorForChange(value)}`}>
                     {value ? inrSigned(value) : "—"}
                 </span>
-                {drift && parseFloat(drift) > 1000 && (
+                {/* #78 U7-c: the backend already computes `drift` against the
+                    per-field thresholds (₹1,000 Invested / ₹15,000 Current
+                    Value), so a flat client-side `> 1000` disagreed with the CV
+                    threshold AND was sign-blind (never badged a negative drift).
+                    Trust the backend value; badge on any non-zero magnitude. */}
+                {drift && Math.abs(parseFloat(drift)) > 0 && (
                     <Badge variant="destructive" className="text-xs">
-                        drift {inr(drift)}
+                        drift {inrSigned(drift)}
                     </Badge>
                 )}
             </div>

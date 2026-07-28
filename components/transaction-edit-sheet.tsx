@@ -43,6 +43,17 @@ interface EditSheetProps {
 export function TransactionEditSheet({ transaction, open, onOpenChange }: EditSheetProps) {
     const queryClient = useQueryClient();
 
+    // #78 U7-f: this generic quantity/price/fees form only makes sense for
+    // BUY/SELL rows. A SPLIT/BONUS/DIVIDEND row carries its meaning elsewhere
+    // (corporate_action ratios / per-share payout), and the positive()/min=1
+    // rules would reject or garble it. Guard those types with a read-only notice
+    // and no editable money fields. (The #68 parent-reprice flow edits BUY rows,
+    // which are fine here.)
+    const isCorporateAction =
+        transaction.type === "SPLIT" ||
+        transaction.type === "BONUS" ||
+        transaction.type === "DIVIDEND";
+
     const form = useForm({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -119,6 +130,29 @@ export function TransactionEditSheet({ transaction, open, onOpenChange }: EditSh
                     </SheetDescription>
                 </SheetHeader>
 
+                {isCorporateAction ? (
+                    <div className="flex flex-1 flex-col gap-4 px-4">
+                        <div className="rounded-md border border-amber-200 bg-amber-50/60 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-300">
+                            <p className="font-medium">
+                                {transaction.type} rows can&apos;t be edited here.
+                            </p>
+                            <p className="mt-1 text-xs">
+                                A {transaction.type} carries its meaning in its corporate-action
+                                details (ratios / per-share payout), not in the plain
+                                quantity/price fields this form edits. To correct it, delete this
+                                row (with a reason, from the transactions list) and re-record the
+                                corporate action via &ldquo;Record corporate action&rdquo;.
+                            </p>
+                        </div>
+                        <SheetFooter className="mt-auto flex-row gap-2 border-t pt-4">
+                            <SheetClose asChild>
+                                <Button variant="outline" type="button" className="flex-1">
+                                    Close
+                                </Button>
+                            </SheetClose>
+                        </SheetFooter>
+                    </div>
+                ) : (
                 <form
                     onSubmit={form.handleSubmit((v) => mutation.mutate(v))}
                     className="flex flex-1 flex-col gap-5 px-4"
@@ -173,6 +207,7 @@ export function TransactionEditSheet({ transaction, open, onOpenChange }: EditSh
                         </Button>
                     </SheetFooter>
                 </form>
+                )}
             </SheetContent>
         </Sheet>
     );

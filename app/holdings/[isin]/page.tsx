@@ -10,7 +10,7 @@ import { PriceChart } from "@/components/price-chart";
 import { TransactionsList } from "@/components/transactions-list";
 import { ChatPanel } from "@/components/chat-panel";
 import { Skeleton } from "@/components/ui/skeleton";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -32,9 +32,16 @@ export default function HoldingDetailPage() {
                 {holdingQuery.isLoading && <DetailSkeleton />}
 
                 {holdingQuery.error && (() => {
-                    const msg = holdingQuery.error.message;
-                    // 404 = position fully exited; show a friendly state instead of a red error
-                    if (msg.includes("No active holding") || msg.includes("404")) {
+                    const err = holdingQuery.error;
+                    const msg = err.message;
+                    // #78 U7-g: detect a closed position via the typed
+                    // ApiError.status (404), not a brittle string match on the
+                    // message. Keep the "No active holding" text check as a
+                    // secondary signal for the 200-with-null shape.
+                    const isClosed =
+                        (err instanceof ApiError && err.status === 404) ||
+                        msg.includes("No active holding");
+                    if (isClosed) {
                         return (
                             <div className="rounded-md border bg-card p-6 text-center">
                                 <p className="text-sm font-medium">This position has been closed</p>

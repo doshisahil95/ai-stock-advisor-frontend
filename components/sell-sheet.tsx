@@ -83,16 +83,22 @@ export function SellSheet({ holding, open, onOpenChange }: SellSheetProps) {
 
     const qty = Number(form.watch("quantity")) || 0;
     const price = Number(form.watch("price")) || 0;
+    const fees = Number(form.watch("fees")) || 0;
     const tradeDate = form.watch("trade_date");
 
-    // Live FIFO preview from backend
+    // Live FIFO preview from backend.
+    // #78 U7-a: pass the ACTUAL fees the user entered (and key the query on them)
+    // so the previewed realized P&L matches what the SELL actually books. The
+    // preview used to hardcode total_fees:"0" while the mutation sent the real
+    // fees, so the confirm-dialog figure differed from the booked value by the
+    // fee amount — on a money surface.
     const previewQuery = useQuery({
-        queryKey: ["sell-preview", holding.isin, qty, price],
+        queryKey: ["sell-preview", holding.isin, qty, price, fees],
         queryFn: () =>
             api.previewSell(holding.isin, {
                 quantity: qty.toString(),
                 price: price.toString(),
-                total_fees: "0",
+                total_fees: fees.toString(),
                 trade_date: new Date(tradeDate || today()).toISOString(),
             }),
         enabled: qty > 0 && price > 0 && qty <= availableQty,
