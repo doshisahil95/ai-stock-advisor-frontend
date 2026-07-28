@@ -74,14 +74,12 @@ export function HoldingsTable({ holdings, headerAction }: HoldingsTableProps) {
     const filtered = useMemo(() => {
         if (!search.trim()) return holdings;
         const q = search.trim().toUpperCase();
-        // #79 U8-e: the placeholder says "symbol or name", so match BOTH — a
-        // symbol PREFIX (as if typing a ticker) OR a company-name SUBSTRING.
-        // Previously only symbol-prefix matched, making the placeholder a lie.
-        return holdings.filter(
-            (h) =>
-                h.symbol.toUpperCase().startsWith(q) ||
-                (h.name ?? "").toUpperCase().includes(q)
-        );
+        // #79 U8-e: search is a TICKER box — match the symbol by prefix only.
+        // (A name-substring match made a 2-char query like "GA" hit unrelated
+        // companies via mid-word substrings — e.g. "GA" matched ONGC through
+        // "Natural GAs" — which is noisy and surprising. The placeholder below
+        // is corrected to say "symbol" to match this behavior honestly.)
+        return holdings.filter((h) => h.symbol.toUpperCase().startsWith(q));
     }, [holdings, search]);
 
     const sorted = useMemo(() => {
@@ -124,7 +122,7 @@ export function HoldingsTable({ holdings, headerAction }: HoldingsTableProps) {
                         <div className="relative w-full max-w-xs">
                             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                             <Input
-                                placeholder="Search symbol or name…"
+                                placeholder="Search symbol…"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="h-9 pl-8 pr-8"
