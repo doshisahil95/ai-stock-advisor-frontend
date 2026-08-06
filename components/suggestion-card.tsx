@@ -135,24 +135,29 @@ export function SuggestionCard({
                 <div className="mt-3 grid grid-cols-4 gap-2 text-xs">
                     {isSellSide ? (
                         <>
+                            {/* TD7/#45: sell group scores are now first-class
+                                candidate fields (symmetric with the buy bars
+                                below reading candidate.quality_score etc.).
+                                Fall back to group_meta.score, then 0, so
+                                historical pre-#45 sell runs still render. */}
                             <GroupBar
                                 fallbackLabel="Booking Opportunity"
-                                value={groupMeta?.booking_opportunity?.score ?? 0}
+                                value={candidate.booking_opportunity_score ?? groupMeta?.booking_opportunity?.score ?? 0}
                                 meta={groupMeta?.booking_opportunity}
                             />
                             <GroupBar
                                 fallbackLabel="Valuation Stretch"
-                                value={groupMeta?.valuation_stretch?.score ?? 0}
+                                value={candidate.valuation_stretch_score ?? groupMeta?.valuation_stretch?.score ?? 0}
                                 meta={groupMeta?.valuation_stretch}
                             />
                             <GroupBar
                                 fallbackLabel="Risk"
-                                value={groupMeta?.risk?.score ?? 0}
+                                value={candidate.risk_score ?? groupMeta?.risk?.score ?? 0}
                                 meta={groupMeta?.risk}
                             />
                             <GroupBar
                                 fallbackLabel="Tax & Concentration"
-                                value={groupMeta?.tax_concentration?.score ?? 0}
+                                value={candidate.tax_concentration_score ?? groupMeta?.tax_concentration?.score ?? 0}
                                 meta={groupMeta?.tax_concentration}
                             />
                         </>

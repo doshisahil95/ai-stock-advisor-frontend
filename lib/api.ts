@@ -433,6 +433,13 @@ export interface SuggestionCandidate {
     valuation_score: number;
     momentum_score: number;
     news_score: number;
+    // TD7/#45: sell-side per-group scores, now first-class backend fields.
+    // Present (non-zero) on sell-run candidates; 0/absent on buy runs. Optional
+    // so historical pre-#45 sell runs (which never carried them) still parse.
+    booking_opportunity_score?: number;
+    valuation_stretch_score?: number;
+    risk_score?: number;
+    tax_concentration_score?: number;
     signals: SuggestionSignal[];
     gates: SuggestionGate[];
     gates_passed: number;
