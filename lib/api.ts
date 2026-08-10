@@ -494,6 +494,13 @@ export interface SuggestionDossier {
     hold_horizon_expected_move?: string;
     hold_horizon_rationale?: string;
     hold_horizon_review_trigger?: string;
+    // #81 — LLM-authored suggested stop-loss + target (both buy and sell).
+    // These are ANALYTICAL REFERENCE POINTS, not trade instructions. The system
+    // never trades. Guard renders with !value.startsWith("(") — absent or
+    // "(insufficient data)" strings are hidden by the availability guard.
+    suggested_target?: string;
+    suggested_stop?: string;
+    suggested_stop_target_rationale?: string;
 }
 
 export type SuggestionDirection = "buy" | "sell";

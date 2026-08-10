@@ -101,6 +101,12 @@ export function SuggestionCard({
     const showHorizonExpectedMove = hasHorizon && isAvail(dossier?.hold_horizon_expected_move);
     const showHorizonRationale = hasHorizon && isAvail(dossier?.hold_horizon_rationale);
     const showHorizonReviewTrigger = hasHorizon && isAvail(dossier?.hold_horizon_review_trigger);
+    // #81: suggested stop-loss + target — both buy and sell. Advisory only.
+    const showStopTarget =
+        !dossier?.narrative_unavailable &&
+        (isAvail(dossier?.suggested_target) ||
+            isAvail(dossier?.suggested_stop) ||
+            isAvail(dossier?.suggested_stop_target_rationale));
 
     return (
         <Card>
@@ -344,6 +350,36 @@ export function SuggestionCard({
                                                 <p>
                                                     <span className="font-medium">Re-check early if: </span>
                                                     {dossier.hold_horizon_review_trigger}
+                                                </p>
+                                            ) : null}
+                                        </div>
+                                    </Section>
+                                ) : null}
+                                {/* #81: LLM-authored suggested stop-loss + target (both buy and sell).
+                                    Advisory reference points only — the system never trades.
+                                    Hidden when all three fields are absent or start with "(" (unavailable). */}
+                                {showStopTarget ? (
+                                    <Section label="Suggested reference levels">
+                                        <p className="mb-2 text-xs italic text-muted-foreground">
+                                            Analytical reference points only — not trade instructions. The system never executes orders.
+                                        </p>
+                                        <div className="space-y-2 text-sm">
+                                            {isAvail(dossier?.suggested_target) ? (
+                                                <p>
+                                                    <span className="font-medium text-emerald-700 dark:text-emerald-400">Upside target: </span>
+                                                    {dossier!.suggested_target}
+                                                </p>
+                                            ) : null}
+                                            {isAvail(dossier?.suggested_stop) ? (
+                                                <p>
+                                                    <span className="font-medium text-red-700 dark:text-red-400">Stop / exit trigger: </span>
+                                                    {dossier!.suggested_stop}
+                                                </p>
+                                            ) : null}
+                                            {isAvail(dossier?.suggested_stop_target_rationale) ? (
+                                                <p className="text-xs text-muted-foreground">
+                                                    <span className="font-medium">Why: </span>
+                                                    {dossier!.suggested_stop_target_rationale}
                                                 </p>
                                             ) : null}
                                         </div>
