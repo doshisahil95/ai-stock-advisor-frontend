@@ -182,7 +182,7 @@ export function SellSheet({ holding, open, onOpenChange }: SellSheetProps) {
                         >
                             <Input
                                 type="number"
-                                step="1"
+                                step="any" /* #80 L9: allow fractional qty (bonus/demerger) */
                                 max={availableQty}
                                 placeholder="10"
                                 {...form.register("quantity")}

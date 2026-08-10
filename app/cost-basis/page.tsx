@@ -83,14 +83,24 @@ export default function CostBasisPage() {
                                     <SummaryRow
                                         label="Difference"
                                         value={
-                                            totalsQuery.data.totals.broker_invested
+                                            // #80 L10: derive from the adjustment list sum (consistent with
+                                            // "equals the sum of all active adjustments" caption below) rather
+                                            // than a JS float subtraction of two large rupee strings that can
+                                            // lose the last cent and disagree with the listed adjustments.
+                                            adjQuery.data && adjQuery.data.length > 0
                                                 ? inrSigned(
-                                                    (
-                                                        parseFloat(totalsQuery.data.totals.invested) -
-                                                        parseFloat(totalsQuery.data.totals.broker_invested)
-                                                    ).toFixed(2)
+                                                    adjQuery.data
+                                                        .reduce((sum, a) => sum + parseFloat(a.amount || "0"), 0)
+                                                        .toFixed(2)
                                                 )
-                                                : "—"
+                                                : totalsQuery.data.totals.broker_invested
+                                                    ? inrSigned(
+                                                        (
+                                                            parseFloat(totalsQuery.data.totals.invested) -
+                                                            parseFloat(totalsQuery.data.totals.broker_invested)
+                                                        ).toFixed(2)
+                                                    )
+                                                    : "—"
                                         }
                                     />
                                 </div>

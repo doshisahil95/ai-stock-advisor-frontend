@@ -129,10 +129,17 @@ export default function TransactionsPage() {
         mutationFn: ({ tx, reason }: { tx: Transaction; reason: string }) =>
             api.deleteTransaction(tx._id, reason),
         onSuccess: async (response) => {
+            // #80 M11: add reconciliation + cost-basis to match buy/sell/corp-action
+            // fan-out convention. Deleting a transaction recomputes the holding and
+            // changes our_invested/our_current_value, which the reconciliation status
+            // card and dividend-drift view read. cost-basis can change if a demerger-
+            // linked BUY is deleted.
             await Promise.all([
                 queryClient.refetchQueries({ queryKey: ["transactions"] }),
                 queryClient.refetchQueries({ queryKey: ["holding", response.isin] }),
                 queryClient.refetchQueries({ queryKey: ["dashboard"] }),
+                queryClient.refetchQueries({ queryKey: ["reconciliation"] }),
+                queryClient.refetchQueries({ queryKey: ["cost-basis"] }),
             ]);
             toast.success(`Deleted ${response.symbol} transaction`, {
                 description: "Holding recomputed.",
@@ -526,7 +533,8 @@ function TxRow({
                 </Badge>
             </TableCell>
             <TableCell className="text-right font-mono text-sm">
-                {isCorporateAction ? "—" : qty}
+                {/* #80 H4: guard against NaN if quantity is absent/malformed */}
+                {isCorporateAction ? "—" : Number.isFinite(qty) ? qty : "—"}
             </TableCell>
             <TableCell className="text-right font-mono text-sm">
                 {isCorporateAction ? "—" : inr(price)}

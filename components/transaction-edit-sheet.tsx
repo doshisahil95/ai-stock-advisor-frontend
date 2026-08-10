@@ -91,10 +91,14 @@ export function TransactionEditSheet({ transaction, open, onOpenChange }: EditSh
                 reason: values.reason,
             }),
         onSuccess: async () => {
+            // #80 M11: add reconciliation to match buy/sell/corp-action fan-out.
+            // An edit recomputes the holding and changes our invested/current_value,
+            // which the reconciliation status card reads.
             await Promise.all([
                 queryClient.refetchQueries({ queryKey: ["transactions"] }),
                 queryClient.refetchQueries({ queryKey: ["holding", transaction.isin] }),
                 queryClient.refetchQueries({ queryKey: ["dashboard"] }),
+                queryClient.refetchQueries({ queryKey: ["reconciliation"] }),
             ]);
             toast.success(`Updated ${transaction.symbol} ${transaction.type}`, {
                 description: "Holding recomputed.",
@@ -159,7 +163,8 @@ export function TransactionEditSheet({ transaction, open, onOpenChange }: EditSh
                 >
                     <div className="grid grid-cols-2 gap-3">
                         <FormField label="Quantity" error={form.formState.errors.quantity?.message}>
-                            <Input type="number" step="1" min="1" {...form.register("quantity")} />
+                            {/* #80 L9: step="any" so fractional shares (bonus/demerger) can be edited */}
+                            <Input type="number" step="any" min="0.0001" {...form.register("quantity")} />
                         </FormField>
                         <FormField label="Price (₹)" error={form.formState.errors.price?.message}>
                             <Input type="number" step="0.01" {...form.register("price")} />

@@ -191,7 +191,7 @@ export function BuySheet(props: BuySheetProps) {
                     >
                         <Input
                             type="number"
-                            step="1"
+                            step="any" /* #80 L9: allow fractional qty (bonus/demerger) */
                             placeholder="10"
                             {...form.register("quantity")}
                         />

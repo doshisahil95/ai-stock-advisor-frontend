@@ -187,10 +187,12 @@ function TxRow({ tx }: { tx: Transaction }) {
     return (
         <TableRow className="hover:bg-accent/40">
             <TableCell className="font-mono text-sm">
+                {/* #80 L11: pin timeZone to IST so date matches transactions/page.tsx */}
                 {new Date(tx.trade_date).toLocaleDateString("en-IN", {
                     day: "2-digit",
                     month: "short",
                     year: "numeric",
+                    timeZone: "Asia/Kolkata",
                 })}
             </TableCell>
             <TableCell>
@@ -200,7 +202,8 @@ function TxRow({ tx }: { tx: Transaction }) {
                 </Badge>
             </TableCell>
             <TableCell className="text-right font-mono text-sm">
-                {isCorporateAction ? "—" : qty}
+                {/* #80 H4: guard against NaN if quantity is absent/malformed */}
+                {isCorporateAction ? "—" : Number.isFinite(qty) ? qty : "—"}
             </TableCell>
             <TableCell className="text-right font-mono text-sm">
                 {isCorporateAction ? "—" : inr(price)}
