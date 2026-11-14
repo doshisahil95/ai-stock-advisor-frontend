@@ -9,7 +9,7 @@
 
 // Base URL — env var on Mac dev, falls back to the EC2 tailnet IP for production.
 export const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://100.112.20.41:8000";
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://100.107.240.8:8000";
 
 // ── Response types (manually maintained — mirror backend) ────────────────────
 
