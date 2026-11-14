@@ -3,6 +3,8 @@
 
 Personal AI Stock Advisor — frontend. Next.js 16 (App Router) + React 19 + Tailwind v4 + shadcn (Nova) + TanStack Query + Recharts + sonner. Single-user UI for the backend at [`ai-stock-advisor-backend`](https://github.com/doshisahil95/ai-stock-advisor-backend). **Strictly advisory; the system never trades.**
 
+> **2026-11-14 — EC2 rebuilt from scratch** (original instance terminated): the prod backend is now at `http://100.107.240.8:8000` (Elastic IP `13.204.207.223`, node tagged `tag:server`). Historical `100.112.20.41` references below are pre-rebuild.
+>
 > Last updated: 2026-07-28 (#69 round-2 review sync — noted the pages/components shipped since the Chat-5 baseline so this README has no doc-drift; the per-page reference in §13 remains the detailed source. Earlier baseline: 2026-05-23 post-Chat-5 audit + cleanup).
 >
 > **Shipped since the 2026-05-23 baseline (pages/components §13's older list predates):** routes `/tax` (#39 capital-gains, FY selector + STCG/LTCG cards + per-lot table), `/watchlist` (#29 F13), `/tags` (#28 F15); dashboard gained `RiskSummaryCard` (#28), a re-shown Realized-P&L card split into Capital vs Dividends (#63/#64), `CollapsibleSection` wrappers (#62), grouped top-nav dropdowns (#58), and `AddHoldingDialog` (#54); the holding drill-down embeds `ChatPanel` (#27 F1/F3, with a self-contained `MarkdownLite` — NO markdown npm dep) and shows read-only stop-loss (#41) + target (#56) strips; suggestion cards carry an LLM-authored hold-horizon badge/section (#55, buy-side only); the transactions header mounts a "Record corporate action" dialog (#68, split/bonus/demerger + §49(2C)); the suggestions page has a manual "Run now" button with polling (#71); the reconciliation page has a read-only Dividend-drift card (#65). **#69 review note:** the reconciliation snapshot mutation is the ONE write path still using lazy `invalidateQueries` (not the app-wide synchronous `refetchQueries`-before-toast convention) — tracked as master_todo #78 (U7-b).
@@ -94,8 +96,8 @@ Watches `app/`, `components/`, `lib/`. Fast Refresh handles most edits; full rel
 | Scenario | Value |
 |---|---|
 | Mac dev → local backend | `http://localhost:8001` |
-| Mac dev → prod backend over Tailscale | `http://100.112.20.41:8000` |
-| EC2 frontend → EC2 backend (same box) | `http://localhost:8000` or `http://100.112.20.41:8000` |
+| Mac dev → prod backend over Tailscale | `http://100.107.240.8:8000` |
+| EC2 frontend → EC2 backend (same box) | `http://localhost:8000` or `http://100.107.240.8:8000` |
 
 Restart `npm run dev` after changing `.env.local` — Next does not hot-reload env vars.
 
@@ -186,7 +188,7 @@ git status
 git push origin main
 
 # 2. SSH to EC2
-ssh ubuntu@100.112.20.41
+ssh ubuntu@13.204.207.223
 cd /home/ubuntu/ai-stock-advisor-frontend
 
 # 3. Pull
@@ -210,7 +212,7 @@ curl -sS -o /dev/null -w "frontend -> %{http_code}\n" http://localhost:3000
 
 # 8. End-to-end smoke from the laptop (after re-pointing the local browser
 #    to the prod Tailscale IP, OR via the laptop's existing Tailscale link):
-open "http://100.112.20.41:3000"
+open "http://100.107.240.8:3000"
 # Walk: dashboard loads, drill-down works, transactions list paginates,
 # Insights tab renders the latest run, theme toggle works.
 ```
